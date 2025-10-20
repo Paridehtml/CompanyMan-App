@@ -1,0 +1,150 @@
+.App {
+    font-family: Arial, sans-serif;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 1rem;
+    background: #f8f9fa;
+    color: #333;
+  }
+  
+  .App-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #2c3e50;
+  }
+  
+  section {
+    background: white;
+    padding: 1rem;
+    margin-bottom: 0rem;
+    border-radius: 6px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.1);
+  }
+  
+  h2 {
+    color: #34495e;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 0.25rem;
+  }
+  
+  .shift-form {
+    margin-top: 1rem;
+  }
+  
+  .shift-form form label {
+    display: block;
+    margin-top: 0.75rem;
+    font-weight: bold;
+  }
+  
+  .shift-form form select,
+  .shift-form form textarea,
+  .shift-form form input[type="text"],
+  .shift-form form input[type="email"] {
+    width: 100%;
+    padding: 0.4rem 0.5rem;
+    margin-top: 0.25rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+    box-sizing: border-box;
+  }
+  
+  .shift-form form textarea {
+    min-height: 3rem;
+  }
+  
+  .shift-form form button {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    background: #3498db;
+    border: none;
+    color: white;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  
+  .shift-form form button:hover {
+    background: #2980b9;
+  }
+  
+  .shift-form form button[type="button"] {
+    background: #e74c3c;
+    margin-left: 1rem;
+  }
+  
+  .shift-form form button[type="button"]:hover {
+    background: #c0392b;
+  }
+  
+  /* Override some react-big-calendar default styles */
+  
+  .rbc-calendar {
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.08);
+    padding: 1rem;
+    font-size: 14px;
+  }
+  
+  .rbc-toolbar button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 0 0.2rem;
+    font-weight: 600;
+  }
+  
+  .rbc-toolbar button:hover {
+    background-color: #2980b9;
+  }
+  
+  .rbc-day-bg.rbc-today {
+    background-color: #dbefff;
+  }
+  
+  .rbc-event {
+    background-color: #3498db;
+    color: white;
+    border-radius: 4px;
+    padding: 0.1rem 0.2rem;
+    font-size: 12px;
+    font-weight: 600;
+    border: none;
+  }
+  
+  .rbc-selected {
+    background-color: #2980b9 !important;
+  }
+  
+  .calendar-section {
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    padding: 1rem;
+    margin-bottom: 2rem;
+    min-height: 700px;
+    position: relative;
+  }
+  
+  .shift-form-wrapper {
+    margin-top: 2rem;
+    width: 100%;
+  }
+  
+  .shift-form {
+    box-sizing: border-box;
+    width: 100%;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    background: #f7fafd;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.05);
+    padding: 16px;
+  }
+  

@@ -43,4 +43,7 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 
+const shiftRoutes = require('./routes/shifts');
+app.use('/api/shifts', shiftRoutes);
+
 module.exports = app;
