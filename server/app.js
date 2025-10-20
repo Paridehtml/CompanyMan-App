@@ -30,7 +30,7 @@ connectDB();
 const userRoutes = require('./routes/userRoutes');
 
 // Use routes
-app.use('/api', userRoutes);
+app.use('/api/users', userRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

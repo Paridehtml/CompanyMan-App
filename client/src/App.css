@@ -1,38 +1,345 @@
 .App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+  font-family: Arial, sans-serif;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem;
+  background: #f8f9fa;
+  color: #333;
 }
 
 .App-header {
-  background-color: #4d5e81;
-  min-height: 100vh;
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #2c3e50;
+}
+
+section {
+  background: white;
+  padding: 1rem;
+  margin-bottom: 0rem;
+  border-radius: 6px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+}
+
+h2 {
+  color: #34495e;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 0.25rem;
+}
+
+.shift-form {
+  margin-top: 1rem;
+}
+
+.shift-form form label {
+  display: block;
+  margin-top: 0.75rem;
+  font-weight: bold;
+}
+
+.shift-form form select,
+.shift-form form textarea,
+.shift-form form input[type="text"],
+.shift-form form input[type="email"] {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  margin-top: 0.25rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.shift-form form textarea {
+  min-height: 3rem;
+}
+
+.shift-form form button {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: #3498db;
+  border: none;
+  color: white;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.shift-form form button:hover {
+  background: #2980b9;
+}
+
+.shift-form form button[type="button"] {
+  background: #e74c3c;
+  margin-left: 1rem;
+}
+
+.shift-form form button[type="button"]:hover {
+  background: #c0392b;
+}
+
+.rbc-calendar {
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.08);
+  padding: 1rem;
+  font-size: 14px;
+}
+
+.rbc-toolbar button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: 0 0.2rem;
+  font-weight: 600;
+}
+
+.rbc-toolbar button:hover {
+  background-color: #2980b9;
+}
+
+.rbc-day-bg.rbc-today {
+  background-color: #dbefff;
+}
+
+.rbc-event {
+  background-color: #3498db;
+  color: white;
+  border-radius: 4px;
+  padding: 0.1rem 0.2rem;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+}
+
+.rbc-selected {
+  background-color: #2980b9 !important;
+}
+
+.calendar-section {
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+  padding: 1rem;
+  min-height: 700px;
+  position: relative;
+}
+
+.shift-form-wrapper {
+  margin-top: 2rem;
+  width: 100%;
+}
+
+.shift-form {
+  margin: 10px 0;
+  border-radius: 8px;
+  box-shadow: 0 0 5px #e6e6e6;
+  background: #fff;
+}
+
+.modal-overlay {
+  position: fixed;
+  left: 0; top: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.10);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
+  z-index: 1000;
+}
+
+.shift-modal {
+  background: white;
+  border: 2px solid #3498db;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.22);
+  padding: 24px;
+  min-width: 320px;
+  position: relative;
+  z-index: 1001;
+}
+
+.note-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #fea027;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  margin-bottom: 7px;
+}
+
+.month-nav button {
+  background: transparent;
+  border: 0px solid #3498db;
+  color: #3498db;
+  font-weight: bold;
+  border-radius: 360px;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  font-size: 17px;
+}
+
+.month-nav button:hover {
+  background: #3498db;
   color: white;
 }
 
-.App-link {
-  color: #61dafb;
+.arrows-wrapper {
+  gap: 10px;
+  display: flex;
+  margin-bottom: 10px;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.month-year-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.year-title {
+  font-size: 10px;
+  color: #7179a8;
+  margin-bottom: 2px;
+  margin-top: 0;
+}
+
+.month-title {
+  font-size: 14px;
+  font-weight: bold;
+  text-align: center;
+  color: #5173ad;
+}
+
+.date-dot {
+  height: 34px;
+  width: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #888;
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 2px;
+  transition: background 0.2s;
+}
+
+.date-dot.with-shift {
+  background: #ddeffe;
+  color: #3686fa;
+  border-radius: 10px;
+  font-weight: bold;
+}
+
+.date-dot.active {
+  font-size: 18px;
+  font-weight: bold;
+  color: #3498db;
+  background: #fffbe6;
+  border-radius: 9px;
+}
+
+.side-date-list {
+  width: 130px;
+  min-width: 130px;
+  height: 650px;
+  background: #f0f0f5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
+  margin: 0;
+
+}
+
+.shift-grid-wrapper.grouped {
+  width: 100%;
+  max-width: 980px;
+  min-width: 820px;
+  margin: 0;
+  display: flex;
+  height: 650px;
+  background: #f8f9fa;
+  position: relative;
+  border-radius: 6px;
+  padding: 20px 0;
+}
+
+.shift-card-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  height: auto;
+  box-sizing: border-box;
+}
+
+.shift-day-group {
+  margin: 0 10px 8px 0;
+}
+
+.shift-card:last-child {
+  margin-bottom: 0;
+}
+
+.master-grid-wrapper {
+  position: relative;
+  height: auto;
+  display: flex;
+}
+
+.shift-card-date {
+  font-size: 14px;
+  color: #34495e;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.shift-card {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  padding: 18px 24px;
+  min-width: 0;
+  width: 95%;
+  max-width: 100%;
+  margin: 0 auto 8px auto;
+  position: relative;
+  transition: box-shadow 0.2s;
+}
+
+.shift-card:hover {
+  box-shadow: 0 4px 18px 2px #6cc44a33;
+}
+
+.shift-card-header {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.shift-card-date {
+  font-size: 14px;
+  color: #34495e;
+  margin-bottom: 8px;
+  font-weight: bold;
 }
