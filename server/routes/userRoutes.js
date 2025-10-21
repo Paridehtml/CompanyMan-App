@@ -1,6 +1,7 @@
-// server/routes/userRoutes.js
 const express = require('express');
 const router = express.Router();
+const auth = require('../middleware/auth'); // import middleware auth
+
 const {
   getAllUsers,
   getUserById,
@@ -8,6 +9,8 @@ const {
   updateUser,
   deleteUser
 } = require('../controllers/userController');
+
+router.use(auth);
 
 // Route: /api/users/
 router.route('/')

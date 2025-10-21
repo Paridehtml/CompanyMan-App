@@ -43,14 +43,30 @@ function UserList() {
       {users.length === 0 ? (
         <p>No users found</p>
       ) : (
-        <ul>
-          {users.map((user) => (
-            <li key={user._id}>
-              <strong>{user.name}</strong> - {user.email} ({user.role})
-              <button onClick={() => handleDelete(user._id)}>Delete</button>
-            </li>
-          ))}
-        </ul>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Password (hashed)</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user._id}>
+                <td>{user.name}</td>
+                <td>{user.email}</td>
+                <td>{user.role}</td>
+                <td>{user.password}</td>
+                <td>
+                  <button onClick={() => handleDelete(user._id)}>Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );

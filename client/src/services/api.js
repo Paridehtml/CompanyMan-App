@@ -1,4 +1,3 @@
-// client/src/services/api.js
 import axios from 'axios';
 
 // Create axios instance with base URL
@@ -9,21 +8,21 @@ const api = axios.create({
   },
 });
 
+// Aggiungi interceptor per inserire token JWT nell’header Authorization
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // User API calls
 export const userAPI = {
-  // Get all users
   getAllUsers: () => api.get('/users'),
-  
-  // Get user by ID
   getUserById: (id) => api.get(`/users/${id}`),
-  
-  // Create new user
   createUser: (userData) => api.post('/users', userData),
-  
-  // Update user
   updateUser: (id, userData) => api.put(`/users/${id}`, userData),
-  
-  // Delete user
   deleteUser: (id) => api.delete(`/users/${id}`),
 };
 

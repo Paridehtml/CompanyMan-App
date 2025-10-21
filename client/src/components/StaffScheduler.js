@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import axios from 'axios';
-import { userAPI } from '../services/api';
+import api, { userAPI } from '../services/api'; // usa api per shift e userAPI per utenti
 
 // This form is used to add or edit a shift
 function ShiftForm({ mode, initialData, staffList, onCancel, onSave, onDelete }) {
@@ -68,12 +67,10 @@ function ShiftGrid({
   onFormSave,
   onFormDelete
 }) {
-  // Log all incoming shifts (as UTC strings)
   useEffect(() => {
     console.log('ShiftGrid received events:', events.map(ev => ev.start.toISOString()));
   }, [events]);
 
-  // Get the year and month in UTC
   const yearNum = month.getUTCFullYear();
   const monthNum = month.getUTCMonth();
   const monthName = month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -82,7 +79,6 @@ function ShiftGrid({
     (_, i) => (i + 1).toString().padStart(2, '0')
   );
 
-  // Filter only the shifts belonging to the current UTC month and year
   const filteredShifts = events.filter(ev => {
     const d = ev.start;
     const cond = d.getUTCFullYear() === yearNum && d.getUTCMonth() === monthNum;
@@ -90,24 +86,19 @@ function ShiftGrid({
     return cond;
   });
 
-  // Sort and then group by calendar day
   const sortedShifts = [...filteredShifts].sort((a, b) => a.start - b.start || a.shiftType.localeCompare(b.shiftType));
   const shiftsByDay = sortedShifts.reduce((acc, shift) => {
-    const dayKey = shift.start.toISOString().slice(0, 10); // UTC day key (YYYY-MM-DD)
+    const dayKey = shift.start.toISOString().slice(0, 10);
     if (!acc[dayKey]) acc[dayKey] = [];
     acc[dayKey].push(shift);
     return acc;
   }, {});
 
-  // Get all days with shifts for dot highlighting
-  const daysWithShifts = new Set(
-    Object.keys(shiftsByDay).map(dateStr => dateStr.split('-')[2])
-  );
+  const daysWithShifts = new Set(Object.keys(shiftsByDay).map(dateStr => dateStr.split('-')[2]));
   const orderedDays = daysOfMonth;
   const [activeDay, setActiveDay] = useState(orderedDays[0]);
   const gridRef = useRef();
 
-  // Handle scroll-based date highlighting
   useEffect(() => {
     const onScroll = () => {
       if (gridRef.current) {
@@ -176,7 +167,6 @@ function ShiftGrid({
         </div>
         <div className="shift-card-list" ref={gridRef}>
           {orderedDays.map((day) => {
-            // Find shifts for the UTC day
             const dayKey = `${yearNum}-${(monthNum + 1).toString().padStart(2, '0')}-${day}`;
             return (
               <div key={day} className="shift-day-group" data-day={day}>
@@ -260,7 +250,7 @@ function StaffScheduler() {
   const fetchShifts = useCallback(async (signal) => {
     const monthStr = month.toISOString().slice(0, 7);
     try {
-      const res = await axios.get(`http://localhost:5001/api/shifts?month=${monthStr}`, { signal });
+      const res = await api.get(`/shifts?month=${monthStr}`, { signal });
       console.log("Shift data received (API):", res.data.data.map(s => s.date));
       const ev = res.data.data.map((shift) => {
         const start = new Date(shift.date);
@@ -336,9 +326,9 @@ function StaffScheduler() {
   const handleFormSave = async (payload, id) => {
     try {
       if (id) {
-        await axios.put(`http://localhost:5001/api/shifts/${id}`, payload);
+        await api.put(`/shifts/${id}`, payload);
       } else {
-        await axios.post('http://localhost:5001/api/shifts', payload);
+        await api.post('/shifts', payload);
       }
       await fetchShifts();
       setEditing(false);
@@ -351,7 +341,7 @@ function StaffScheduler() {
   // Handler for deleting a shift
   const handleFormDelete = async () => {
     try {
-      await axios.delete(`http://localhost:5001/api/shifts/${formData.id}`);
+      await api.delete(`/shifts/${formData.id}`);
       await fetchShifts();
       setEditing(false);
       setFormData(null);
