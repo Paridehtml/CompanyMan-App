@@ -5,6 +5,7 @@ function UserForm({ onUserCreated }) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    password: '',
     role: 'employee'
   });
   const [error, setError] = useState(null);
@@ -23,7 +24,7 @@ function UserForm({ onUserCreated }) {
       await userAPI.createUser(formData);
       setSuccess(true);
       setError(null);
-      setFormData({ name: '', email: '', role: 'employee' });
+      setFormData({ name: '', email: '', password: '', role: 'employee' });
       
       if (onUserCreated) {
         onUserCreated();
@@ -61,6 +62,17 @@ function UserForm({ onUserCreated }) {
             type="email"
             name="email"
             value={formData.email}
+            onChange={handleChange}
+            required
+          />
+        </div>
+
+        <div>
+          <label>Password:</label>
+          <input
+            type="password"
+            name="password"
+            value={formData.password}
             onChange={handleChange}
             required
           />
