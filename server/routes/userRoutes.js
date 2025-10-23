@@ -14,14 +14,11 @@ const {
 
 const User = require('../models/userModel');
 
-// Apply auth middleware to all routes
 router.use(auth);
 
-// Route: /api/users/
 router.route('/')
   .get(getAllUsers)
   .post(createUser);
-
 
 // Get the current logged-in user's profile
 router.get('/profile', async (req, res) => {
@@ -46,7 +43,7 @@ router.get('/profile', async (req, res) => {
 // Route: /api/users/profile
 // Update profile of currently logged-in user
 router.put('/profile', async (req, res) => {
-  console.log('[ROUTE CALLED] Profile update req.body:', req.body); // Debug route entry
+  console.log('[ROUTE CALLED] Profile update req.body:', req.body);
   try {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ msg: 'User not found' });
@@ -56,7 +53,6 @@ router.put('/profile', async (req, res) => {
     user.phone = req.body.phone !== undefined ? req.body.phone : user.phone;
     user.position = req.body.position !== undefined ? req.body.position : user.position;
     user.avatar = req.body.avatar !== undefined ? req.body.avatar : user.avatar;
-    // Add other fields as needed
 
     await user.save();
     res.json({

@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 
 module.exports = function (req, res, next) {
   console.log('auth middleware executed for:', req.method, req.originalUrl); 
-  console.log('Authorization header:', req.header('Authorization'));         // log header token
+  console.log('Authorization header:', req.header('Authorization'));
 
   const authHeader = req.header('Authorization');
   if (!authHeader) {
@@ -17,7 +17,7 @@ module.exports = function (req, res, next) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded.user;
-    console.log('user in auth middleware:', req.user); // log payload user
+    console.log('user in auth middleware:', req.user);
 
     next();
   } catch (err) {
