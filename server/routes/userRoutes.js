@@ -1,5 +1,3 @@
-console.log('userRoutes.js LOADED by server/app.js');
-
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
@@ -14,71 +12,82 @@ const {
 
 const User = require('../models/userModel');
 
-router.use(auth);
-
 router.route('/')
-  .get(getAllUsers)
+  .get(auth, getAllUsers)
   .post(createUser);
 
-// Get the current logged-in user's profile
-router.get('/profile', async (req, res) => {
+// Get the current logged-in user's profile (protected)
+// @route GET /api/users/profile
+router.get('/profile', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ msg: 'User not found' });
+    // Explicitly use req.user.id from the JWT payload
+    const user = await User.findById(req.user.id).select('-password'); 
+
+    if (!user) return res.status(404).json({ success: false, msg: 'User not found' });
+    
     res.json({
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      isAdmin: user.role === 'admin',
-      phone: user.phone,
-      position: user.position,
-      avatar: user.avatar
+      success: true,
+      data: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isAdmin: user.role === 'admin',
+        phone: user.phone,
+        position: user.position,
+        avatar: user.avatar
+      }
     });
   } catch (err) {
     console.error('Error fetching profile:', err);
-    res.status(500).json({ msg: 'Error fetching profile', error: err.message });
+
+    res.status(500).json({ success: false, msg: 'Server Error fetching profile', error: err.message });
   }
 });
 
-// Route: /api/users/profile
-// Update profile of currently logged-in user
-router.put('/profile', async (req, res) => {
-  console.log('[ROUTE CALLED] Profile update req.body:', req.body);
+// Update profile of current logged-in user (protected)
+// @route PUT /api/users/profile
+router.put('/profile', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ msg: 'User not found' });
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) return res.status(404).json({ success: false, msg: 'User not found' });
 
-    // Defensive defaults for required fields
-    user.name = req.body.name !== undefined ? req.body.name : user.name;
-    user.phone = req.body.phone !== undefined ? req.body.phone : user.phone;
-    user.position = req.body.position !== undefined ? req.body.position : user.position;
-    user.avatar = req.body.avatar !== undefined ? req.body.avatar : user.avatar;
+    // Update fields (only name, phone, position, avatar)
+    user.name = req.body.name ?? user.name;
+    user.phone = req.body.phone ?? user.phone;
+    user.position = req.body.position ?? user.position;
+    user.avatar = req.body.avatar ?? user.avatar;
 
     await user.save();
+    
+    // Standardized response format
     res.json({
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      isAdmin: user.role === 'admin',
-      phone: user.phone,
-      position: user.position,
-      avatar: user.avatar
+      success: true,
+      data: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isAdmin: user.role === 'admin',
+        phone: user.phone,
+        position: user.position,
+        avatar: user.avatar
+      }
     });
   } catch (err) {
     console.error('Profile update error:', err);
-    res.status(500).json({ msg: 'Profile update error', error: err.message });
+    res.status(500).json({ success: false, msg: 'Profile update error', error: err.message });
   }
 });
 
-// Route: /api/users/:id
+// Route: /api/users/:id (protected)
 router.route('/:id')
-  .get(getUserById)
-  .put(updateUser)
-  .delete(deleteUser);
+  .get(auth, getUserById)
+  .put(auth, updateUser)
+  .delete(auth, deleteUser);
 
 // Debug catch-all for unmatched routes
 router.use((req, res) => {
-  console.log('UNMATCHED ROUTE:', req.method, req.originalUrl, req.body);
   res.status(404).json({ msg: 'Unmatched route', method: req.method, url: req.originalUrl, body: req.body });
 });
 

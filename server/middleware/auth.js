@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 
 module.exports = function (req, res, next) {
-  console.log('auth middleware executed for:', req.method, req.originalUrl); 
+  console.log('auth middleware executed for:', req.method, req.originalUrl);
   console.log('Authorization header:', req.header('Authorization'));
 
   const authHeader = req.header('Authorization');
@@ -18,7 +18,6 @@ module.exports = function (req, res, next) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded.user;
     console.log('user in auth middleware:', req.user);
-
     next();
   } catch (err) {
     console.error('Token is invalid:', err);

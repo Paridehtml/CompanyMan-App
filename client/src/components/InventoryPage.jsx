@@ -6,6 +6,7 @@ const InventoryPage = () => {
   const { token } = useContext(AuthContext);
 
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({
     name: "",
     sku: "",
@@ -30,11 +31,28 @@ const InventoryPage = () => {
     } catch (err) {}
   }
 
-  useEffect(() => {
-    axios.get('/api/inventory', {
-      headers: { Authorization: `Bearer ${token}` }
-    }).then(res => setItems(res.data));
+  const fetchItems = async () => {
+    if (!token) return;
 
+    setLoading(true);
+    try {
+      const res = await axios.get('http://localhost:5001/api/inventory', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      setItems(res.data.data || []); 
+      setError(null);
+    } catch (err) {
+      console.error('Inventory fetch failed:', err.response || err);
+      setError(err.response?.status === 401 ? "Session expired. Please log in again." : "Failed to load inventory.");
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    fetchItems();
   }, [token]);
 
 
@@ -45,6 +63,15 @@ const InventoryPage = () => {
       </div>
     );
   }
+  
+  if (loading) {
+    return (
+      <div style={{ textAlign: "center", marginTop: 80 }}>
+        Loading Inventory Data...
+      </div>
+    );
+  }
+
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -56,14 +83,14 @@ const InventoryPage = () => {
     };
     try {
       if (editId) {
-        await axios.put(`/api/inventory/${editId}`, payload, {
+        await axios.put(`http://localhost:5001/api/inventory/${editId}`, payload, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json"
           }
         });
       } else {
-        await axios.post('/api/inventory', payload, {
+        await axios.post('http://localhost:5001/api/inventory', payload, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json"
@@ -83,10 +110,8 @@ const InventoryPage = () => {
         }
       });
       setEditId(null);
-      // Refetch items
-      axios.get('/api/inventory', {
-        headers: { Authorization: `Bearer ${token}` }
-      }).then(res => setItems(res.data));
+
+      fetchItems();
     } catch (err) {
       setError(
         err.response?.data?.error ||
@@ -94,7 +119,7 @@ const InventoryPage = () => {
         JSON.stringify(err.response?.data) ||
         'Error!'
       );
-      console.error('Inventory add error:', err.response?.data);
+      console.error('Inventory mutation error:', err.response?.data);
     }
   };
 
@@ -115,12 +140,14 @@ const InventoryPage = () => {
   };
 
   const handleDelete = async id => {
-    await axios.delete(`/api/inventory/${id}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    axios.get('/api/inventory', {
-      headers: { Authorization: `Bearer ${token}` }
-    }).then(res => setItems(res.data));
+    try {
+        await axios.delete(`http://localhost:5001/api/inventory/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        fetchItems();
+    } catch (e) {
+        setError("Failed to delete item.");
+    }
   };
 
   const handleChange = e => {
@@ -140,58 +167,114 @@ const InventoryPage = () => {
   };
 
   return (
-    <div>
+    <div style={{ maxWidth: 1000, margin: '0 auto', padding: 20 }}>
       <h2>Company Inventory</h2>
-      <form onSubmit={handleSubmit} style={{ marginBottom: 32 }}>
-        <h3>{editId ? "Edit Item" : "Add New Item"}</h3>
-        {error && <div style={{ color: "red" }}>{error}</div>}
-        <input name="name" placeholder="Name" value={form.name} onChange={handleChange} required />
-        <input name="sku" placeholder="SKU" value={form.sku} onChange={handleChange} required />
-        <input name="description" placeholder="Description" value={form.description} onChange={handleChange} />
-        <input name="quantity" type="number" placeholder="Quantity" value={form.quantity} onChange={handleChange} required />
-        <input name="supplier.name" placeholder="Supplier Name" value={form.supplier.name} onChange={handleChange} />
-        <input name="supplier.contact" placeholder="Supplier Contact" value={form.supplier.contact} onChange={handleChange} />
-        <input name="supplier.email" placeholder="Supplier Email" value={form.supplier.email} onChange={handleChange} />
-        <input name="supplier.address" placeholder="Supplier Address" value={form.supplier.address} onChange={handleChange} />
-        <button type="submit">{editId ? "Update" : "Add"}</button>
-        {editId && (
-          <button type="button" onClick={() => {
-            setEditId(null);
-            setForm({
-              name: "",
-              sku: "",
-              description: "",
-              quantity: "",
-              supplier: { name: "", contact: "", email: "", address: "" }
-            });
-          }}>Cancel</button>
-        )}
+      <form onSubmit={handleSubmit} style={{ marginBottom: 32, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+        <h3 style={{ gridColumn: '1 / -1', marginBottom: 10 }}>{editId ? "Edit Item" : "Add New Item"}</h3>
+        {error && <div style={{ color: "red", gridColumn: '1 / -1', padding: 10, border: '1px solid red', borderRadius: 4 }}>{error}</div>}
+        
+        <input name="name" placeholder="Name" value={form.name} onChange={handleChange} required className="input-field" />
+        <input name="sku" placeholder="SKU" value={form.sku} onChange={handleChange} required className="input-field" />
+        <input name="description" placeholder="Description" value={form.description} onChange={handleChange} className="input-field" />
+        <input name="quantity" type="number" placeholder="Quantity" value={form.quantity} onChange={handleChange} required className="input-field" />
+        
+        <input name="supplier.name" placeholder="Supplier Name" value={form.supplier.name} onChange={handleChange} className="input-field" />
+        <input name="supplier.contact" placeholder="Supplier Contact" value={form.supplier.contact} onChange={handleChange} className="input-field" />
+        <input name="supplier.email" placeholder="Supplier Email" value={form.supplier.email} onChange={handleChange} className="input-field" />
+        <input name="supplier.address" placeholder="Supplier Address" value={form.supplier.address} onChange={handleChange} className="input-field" />
+        
+        <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 10, marginTop: 10 }}>
+            <button type="submit" className="button-primary">{editId ? "Update Item" : "Add Item"}</button>
+            {editId && (
+              <button type="button" onClick={() => {
+                setEditId(null);
+                setForm({
+                  name: "",
+                  sku: "",
+                  description: "",
+                  quantity: "",
+                  supplier: { name: "", contact: "", email: "", address: "" }
+                });
+              }} className="button-secondary">Cancel Edit</button>
+            )}
+        </div>
       </form>
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>SKU</th>
-            <th>Quantity</th>
-            <th>Supplier</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map(item =>
-            <tr key={item._id}>
-              <td>{item.name}</td>
-              <td>{item.sku}</td>
-              <td>{item.quantity}</td>
-              <td>{item.supplier?.name}</td>
-              <td>
-                <button onClick={() => handleEdit(item)}>Edit</button>
-                <button onClick={() => handleDelete(item._id)} style={{ color: "red" }}>Delete</button>
-              </td>
+      
+      <h3 style={{ marginTop: 40 }}>Current Stock</h3>
+      {items.length === 0 ? (
+        <p style={{ textAlign: 'center', color: '#666' }}>No inventory items found.</p>
+      ) : (
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: 'left', padding: '12px 8px' }}>Name</th>
+              <th style={{ textAlign: 'left', padding: '12px 8px' }}>SKU</th>
+              <th style={{ textAlign: 'center', padding: '12px 8px' }}>Quantity</th>
+              <th style={{ textAlign: 'left', padding: '12px 8px' }}>Supplier</th>
+              <th style={{ textAlign: 'center', padding: '12px 8px' }}>Actions</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {items.map(item =>
+              <tr key={item._id} style={{ borderBottom: '1px solid #eee' }}>
+                <td style={{ padding: '12px 8px' }}>{item.name}</td>
+                <td style={{ padding: '12px 8px' }}>{item.sku}</td>
+                <td style={{ textAlign: 'center', padding: '12px 8px', fontWeight: 'bold', color: item.quantity < 5 ? 'red' : 'inherit' }}>{item.quantity}</td>
+                <td style={{ padding: '12px 8px' }}>{item.supplier?.name || '-'}</td>
+                <td style={{ padding: '12px 8px', display: 'flex', gap: 5, justifyContent: 'center' }}>
+                  <button onClick={() => handleEdit(item)} className="button-action">Edit</button>
+                  <button onClick={() => handleDelete(item._id)} className="button-delete">Delete</button>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      )}
+      
+      <style jsx>{`
+        .input-field {
+          padding: 8px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+        }
+        .button-primary {
+          background-color: #4CAF50;
+          color: white;
+          padding: 10px 15px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+        .button-secondary {
+          background-color: #f4f4f4;
+          color: #333;
+          padding: 10px 15px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+        .button-action {
+          background-color: #3498db;
+          color: white;
+          padding: 5px 10px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 0.9em;
+        }
+        .button-delete {
+          background-color: #e74c3c;
+          color: white;
+          padding: 5px 10px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 0.9em;
+        }
+        table th {
+            background-color: #f0f0f0;
+        }
+      `}</style>
     </div>
   );
 };

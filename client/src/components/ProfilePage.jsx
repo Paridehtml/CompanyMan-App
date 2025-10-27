@@ -5,6 +5,7 @@ import axios from 'axios';
 const ProfilePage = () => {
   const { token } = useContext(AuthContext);
   const [user, setUser] = useState({});
+  const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     name: '',
@@ -14,26 +15,37 @@ const ProfilePage = () => {
   });
   const [error, setError] = useState(null);
 
-  // Fetch user profile from backend
+
   const fetchProfile = async () => {
+    setLoading(true);
     try {
-      const response = await axios.get('/api/users/profile', {
+      const response = await axios.get('http://localhost:5001/api/users/profile', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setUser(response.data);
+      
+      const userData = response.data.data;
+
+      setUser(userData);
       setForm({
-        name: response.data.name || '',
-        phone: response.data.phone || '',
-        position: response.data.position || '',
-        avatar: response.data.avatar || '',
+        name: userData.name || '',
+        phone: userData.phone || '',
+        position: userData.position || '',
+        avatar: userData.avatar || '',
       });
-    } catch (err) { /* handle error */ }
+      setError(null);
+    } catch (err) { 
+      console.error('Error fetching profile:', err);
+      setError('Failed to load profile data.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    fetchProfile();
-    // eslint-disable-next-line
-  }, []);
+    if (token) {
+      fetchProfile();
+    }
+  }, [token]);
 
   const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -41,21 +53,38 @@ const ProfilePage = () => {
     e.preventDefault();
     setError(null);
     try {
-      await axios.put('/api/users/profile', form, {
+      await axios.put('http://localhost:5001/api/users/profile', form, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setEditing(false);
-      fetchProfile(); // Get updated info after save
+      fetchProfile();
     } catch (err) {
       setError('Profile update failed: ' + (err.response?.data?.msg || 'Unknown error'));
     }
   };
 
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', marginTop: 80 }}>
+        Loading Profile...
+      </div>
+    );
+  }
+  
+  if (error) {
+     return (
+      <div style={{ textAlign: 'center', marginTop: 80, color: 'red' }}>
+        {error}
+      </div>
+    );
+  }
+
+
   if (editing) {
     return (
-      <form onSubmit={handleSave} style={{ maxWidth: 360, margin: '30px auto' }}>
+      <form onSubmit={handleSave} style={{ maxWidth: 360, margin: '30px auto', padding: 20, border: '1px solid #ccc', borderRadius: 8 }}>
         <h2>Edit Profile</h2>
-        {error && <div style={{ color: 'red' }}>{error}</div>}
+        {error && <div style={{ color: 'red', marginBottom: 10 }}>{error}</div>}
         <label>Name:<input name="name" value={form.name} onChange={handleChange} /></label>
         <label>Email:<input name="email" value={user.email} disabled /></label>
         <label>Phone:<input name="phone" value={form.phone} onChange={handleChange} /></label>
