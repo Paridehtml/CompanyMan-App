@@ -1,0 +1,4 @@
+transaction_id,date,amount,payment_method,product
+1,2025-10-01,18.00,Card,caffe
+2,2025-10-01,15.50,Card,sandwich
+3,2025-10-01,13.75,Card,Tea

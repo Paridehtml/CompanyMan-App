@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Shift = require('../models/Shifts');
-const auth = require('../middleware/auth'); // import del middleware
+const auth = require('../middleware/auth');
 
 router.use(auth);
 
-// GET /shifts?month=YYYY-MM&staffId=...
 router.get('/', async (req, res) => {
   const { month, staffId } = req.query;
 
