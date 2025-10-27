@@ -15,7 +15,7 @@ router.post('/register', [
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { name, email, password } = req.body;
+  const { name, email, password, role } = req.body;
 
   try {
     let user = await User.findOne({ email });
@@ -23,7 +23,7 @@ router.post('/register', [
       return res.status(400).json({ msg: 'User already exists' });
     }
 
-    user = new User({ name, email, password });
+    user = new User({ name, email, password, role: role || 'employee' });
     await user.save();
 
     const payload = { 
@@ -31,7 +31,7 @@ router.post('/register', [
         id: user.id, 
         name: user.name,
         email: user.email,
-        isAdmin: user.role === 'admin' 
+        role: user.role
       } 
     };
 
@@ -78,7 +78,7 @@ router.post('/login', [
         id: user.id, 
         name: user.name,
         email: user.email,
-        isAdmin: user.role === 'admin' 
+        role: user.role
       } 
     };
 

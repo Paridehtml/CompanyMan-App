@@ -11,6 +11,8 @@ import Logout from './components/Logout';
 import Navbar from './components/Navbar';
 import ProfilePage from './components/ProfilePage';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import InventoryPage from './components/InventoryPage';
+
 
 function App() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -90,6 +92,14 @@ function App() {
                     </section>
                   </PrivateRoute>
                 }
+              />
+              <Route
+              path="/inventory"
+              element={
+                <PrivateRoute>
+                  <InventoryPage />
+                </PrivateRoute>
+              }
               />
             </Routes>
           </main>

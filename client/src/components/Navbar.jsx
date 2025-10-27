@@ -24,12 +24,15 @@ const Navbar = () => {
       alignItems: 'center'
     }}>
       <Link to="/shifts" style={{ fontWeight: 600 }}>Staff Scheduler</Link>
-      <Link to="/profile">Profilo ({userEmail})</Link>
+      <Link to="/profile">Profile ({userEmail})</Link>
       {isAdmin && (
-        <Link to="/users">Gestione Utenti</Link>
+        <Link to="/users">Users</Link>
       )}
       <div style={{ flex: 1 }} />
       {}
+      {isAdmin && (
+        <Link to="/inventory">Inventory</Link>
+      )}
     </nav>
   );
 };
