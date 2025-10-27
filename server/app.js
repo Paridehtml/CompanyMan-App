@@ -7,12 +7,17 @@ const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/auth');
 const shiftRoutes = require('./routes/Shifts');
 const auth = require('./middleware/auth');
-// const sensitiveRouter = require('./routes/sensitiveRouter'); // if used
 
 const app = express();
 
+
+
 app.use(cors());
+
 app.use(express.json());
+
+const inventoryRoutes = require('./routes/inventoryRoutes');
+app.use('/api/inventory', inventoryRoutes);
 
 const connectDB = async () => {
   try {
@@ -29,11 +34,12 @@ const connectDB = async () => {
 
 connectDB();
 
-// API Routes
+// Application API Routes
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/shifts', shiftRoutes);
 
+// Health check
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to CompanyMan API' });
 });
