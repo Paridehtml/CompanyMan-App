@@ -1,15 +1,18 @@
 import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { AuthContext } from './authContext';
+// FIX: Using explicit .jsx extension for robust resolution
+import { AuthContext } from './authContext.jsx';
 
 const Navbar = () => {
   const { token } = useContext(AuthContext);
-  let isAdmin = false;
+  let isAdminOrManager = false; // New flag for Admin/Manager
   let userEmail = '';
   if (token) {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      isAdmin = payload.user?.isAdmin;
+      const userRole = payload.user?.role;
+      // Check if user is Admin or Manager
+      isAdminOrManager = userRole === 'admin' || userRole === 'manager'; 
       userEmail = payload.user?.email || '';
     } catch (err) {}
   }
@@ -25,12 +28,21 @@ const Navbar = () => {
     }}>
       <Link to="/shifts" style={{ fontWeight: 600 }}>Staff Scheduler</Link>
       <Link to="/profile">Profile ({userEmail})</Link>
-      {isAdmin && (
+      
+      {/* Show Alerts link for Admins/Managers */}
+      {isAdminOrManager && (
+          <Link to="/notifications">Alerts & AI</Link> 
+      )}
+
+      {/* Show Users link only for Admins/Managers (since it manages users) */}
+      {isAdminOrManager && (
         <Link to="/users">Users</Link>
       )}
+      
       <div style={{ flex: 1 }} />
-      {}
-      {isAdmin && (
+      
+      {/* Show Inventory link for Admins/Managers */}
+      {isAdminOrManager && (
         <Link to="/inventory">Inventory</Link>
       )}
     </nav>
