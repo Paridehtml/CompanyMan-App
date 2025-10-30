@@ -8,6 +8,7 @@ const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/auth');
 const shiftRoutes = require('./routes/shiftRoutes');
 const inventoryRoutes = require('./routes/inventoryRoutes');
+const predictRoutes = require('./routes/predictRoutes');
 
 const app = express();
 
@@ -20,6 +21,9 @@ app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/shifts', shiftRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/predict', predictRoutes);
+
+// Health check
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to CompanyMan API' });
 });

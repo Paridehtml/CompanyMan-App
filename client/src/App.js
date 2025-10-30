@@ -6,13 +6,13 @@ import StaffScheduler from './components/StaffScheduler';
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
 import PrivateRoute from './components/PrivateRoute';
-import { AuthProvider, AuthContext } from './components/authContext';
+import { AuthProvider, AuthContext } from './components/authContext.jsx'; // Standardized import
 import Logout from './components/Logout';
 import Navbar from './components/Navbar';
 import ProfilePage from './components/ProfilePage';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import InventoryPage from './components/InventoryPage';
-
+import NotificationPage from './components/NotificationPage.jsx'; // New Import
 
 function App() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -26,6 +26,7 @@ function App() {
     let isAdmin = false;
     if (token) {
       try {
+        // NOTE: The token payload now includes isAdmin directly
         const payload = JSON.parse(atob(token.split('.')[1]));
         isAdmin = payload.user?.isAdmin;
       } catch (err) {}
@@ -94,12 +95,21 @@ function App() {
                 }
               />
               <Route
-              path="/inventory"
-              element={
-                <PrivateRoute>
-                  <InventoryPage />
-                </PrivateRoute>
-              }
+                path="/inventory"
+                element={
+                  <PrivateRoute>
+                    <InventoryPage />
+                  </PrivateRoute>
+                }
+              />
+              {/* NEW ROUTE for Predictive Dashboard */}
+              <Route
+                path="/notifications"
+                element={
+                  <PrivateRoute>
+                    <NotificationPage />
+                  </PrivateRoute>
+                }
               />
             </Routes>
           </main>

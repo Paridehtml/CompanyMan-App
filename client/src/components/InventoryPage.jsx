@@ -1,12 +1,13 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext, useCallback } from 'react'; // <-- ADDED useCallback
 import axios from 'axios';
-import { AuthContext } from './authContext';
+import { AuthContext } from './authContext.jsx'; // Corrected import path
 
 const InventoryPage = () => {
   const { token } = useContext(AuthContext);
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [suggestion, setSuggestion] = useState(null); // State for AI suggestion
   const [form, setForm] = useState({
     name: "",
     sku: "",
@@ -31,11 +32,13 @@ const InventoryPage = () => {
     } catch (err) {}
   }
 
-  const fetchItems = async () => {
+  // --- WRAPPED fetchItems in useCallback ---
+  const fetchItems = useCallback(async () => {
     if (!token) return;
 
     setLoading(true);
     try {
+      // NOTE: Using full URL for reliability, but relative paths (/api/inventory) are cleaner in production
       const res = await axios.get('http://localhost:5001/api/inventory', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -49,11 +52,12 @@ const InventoryPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]); // <-- Dependencies for useCallback are token
+
   
   useEffect(() => {
     fetchItems();
-  }, [token]);
+  }, [fetchItems]); // <-- Dependency now includes fetchItems, resolving the warning
 
 
   if (userRole !== "admin" && userRole !== "manager") {
@@ -71,6 +75,20 @@ const InventoryPage = () => {
       </div>
     );
   }
+
+  // Handler for generating AI Marketing Suggestion
+  const handleMarketingSuggestion = async (sku) => {
+    setSuggestion("Generating suggestion...");
+    try {
+      const res = await axios.get(`http://localhost:5001/api/predict/marketing-suggestion/${sku}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSuggestion(res.data.text);
+    } catch (err) {
+      setSuggestion("Failed to get suggestion. Check backend logs.");
+      console.error("AI Suggestion Error:", err);
+    }
+  };
 
 
   const handleSubmit = async e => {
@@ -169,6 +187,19 @@ const InventoryPage = () => {
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: 20 }}>
       <h2>Company Inventory</h2>
+      
+      {suggestion && (
+        <div style={{ 
+          marginBottom: 20, 
+          padding: 15, 
+          border: '1px solid #2ecc71', 
+          backgroundColor: '#e9f7ef',
+          borderRadius: 4
+        }}>
+          <strong>AI Suggestion:</strong> {suggestion}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} style={{ marginBottom: 32, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
         <h3 style={{ gridColumn: '1 / -1', marginBottom: 10 }}>{editId ? "Edit Item" : "Add New Item"}</h3>
         {error && <div style={{ color: "red", gridColumn: '1 / -1', padding: 10, border: '1px solid red', borderRadius: 4 }}>{error}</div>}
@@ -224,6 +255,14 @@ const InventoryPage = () => {
                 <td style={{ padding: '12px 8px', display: 'flex', gap: 5, justifyContent: 'center' }}>
                   <button onClick={() => handleEdit(item)} className="button-action">Edit</button>
                   <button onClick={() => handleDelete(item._id)} className="button-delete">Delete</button>
+                  {/* New Predictive Feature Button */}
+                  <button 
+                    onClick={() => handleMarketingSuggestion(item.sku)} 
+                    className="button-ai"
+                    disabled={suggestion && suggestion.startsWith("Generating")}
+                  >
+                    {suggestion && suggestion.startsWith("Generating") ? "Generating..." : "AI Suggestion"}
+                  </button>
                 </td>
               </tr>
             )}
@@ -270,6 +309,15 @@ const InventoryPage = () => {
           border-radius: 4px;
           cursor: pointer;
           font-size: 0.9em;
+        }
+        .button-ai {
+            background-color: #f39c12;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
         }
         table th {
             background-color: #f0f0f0;
