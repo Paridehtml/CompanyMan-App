@@ -22,23 +22,50 @@ const inventorySchema = new mongoose.Schema({
     min: [0, 'Quantity cannot be negative'],
     default: 0
   },
-  unitPrice: {
+
+  unit: {
+    type: String,
+    required: [true, 'Stocking unit of measure is required (g, ml, unit)'],
+    enum: ['g', 'kg', 'ml', 'l', 'unit'],
+    default: 'unit'
+  },
+
+  purchasePrice: {
     type: Number,
     min: [0, 'Price cannot be negative'],
     default: 0,
   },
-  supplier: {
-    name: String,
-    contact: String,
-    email: String,
-    address: String
+
+  purchaseUnit: {
+    type: String,
+    required: [true, 'Purchase unit is required'],
+    enum: ['g', 'kg', 'ml', 'l', 'unit'],
+    default: 'unit'
   },
-  lastRestocked: {
+
+  purchaseQuantity: {
+    type: Number,
+    min: [0.001, 'Purchase quantity must be positive'],
+    default: 1
+  },
+
+  supplier: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Supplier',
+    required: false,
+  },
+  dateReceived: {
     type: Date,
     default: Date.now,
-  }
+  },
+  expiresInDays: {
+    type: Number,
+    min: 0,
+    default: null
+  },
+  
 }, {
-  timestamps: true
+  timestamps: true 
 });
 
 module.exports = mongoose.model('Inventory', inventorySchema);

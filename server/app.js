@@ -3,32 +3,41 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
-// --- Import Routes and Middleware ---
+// Import Routes
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/auth');
 const shiftRoutes = require('./routes/shiftRoutes');
 const inventoryRoutes = require('./routes/inventoryRoutes');
 const predictRoutes = require('./routes/predictRoutes');
+const menuRoutes = require('./routes/menuRoutes');
+const salesRoutes = require('./routes/salesRoutes');
+const wasteRoutes = require('./routes/wasteRoutes');
+const supplierRoutes = require('./routes/supplierRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 const app = express();
 
-// --- Middleware ---
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// --- Register Routes ---
+// Register Routes
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/shifts', shiftRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/predict', predictRoutes);
+app.use('/api/menu', menuRoutes);
+app.use('/api/sales', salesRoutes);
+app.use('/api/waste', wasteRoutes);
+app.use('/api/suppliers', supplierRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check
 app.get('/', (req, res) => {
-  res.json({ message: 'Welcome to CompanyMan API' });
+  res.json({ message: 'CompanyMan API is Running' });
 });
 
-// --- Database Connection ---
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
@@ -41,7 +50,6 @@ const connectDB = async () => {
 
 connectDB();
 
-// --- Start Server ---
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 

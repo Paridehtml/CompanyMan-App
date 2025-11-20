@@ -1,24 +1,84 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import React, { useContext, useEffect } from 'react';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { PaperProvider, DefaultTheme } from 'react-native-paper'; 
+import { Platform } from 'react-native';
+import { AuthProvider, AuthContext } from '@/components/authContext'; 
+import { OrderProvider } from '@/components/OrderContext';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
+const theme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: '#306eff',
+    surface: '#FFFFFF', 
+    elevation: {
+      ...DefaultTheme.colors.elevation,
+      level1: '#FFFFFF',
+      level2: '#FFFFFF',
+    }
+  },
 };
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+function RootLayoutNav() {
+  const auth = useContext(AuthContext);
+  const router = useRouter();
+  const segments = useSegments(); 
+
+  // Register Service Worker
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(registration => {
+          console.log('SW registered: ', registration);
+        }).catch(registrationError => {
+          console.log('SW registration failed: ', registrationError);
+        });
+      });
+    }
+  }, []);
+
+  if (!auth) {
+    return null; 
+  }
+  
+  const { isAuthenticated, loading } = auth; 
+
+  useEffect(() => {
+    if (loading) {
+      return; 
+    }
+
+    const inAuthGroup = segments[0] === '(auth)';
+
+    if (isAuthenticated && inAuthGroup) {
+      router.replace('/');
+    } else if (!isAuthenticated && !inAuthGroup) {
+      router.replace('/(auth)/login');
+    }
+    
+  }, [isAuthenticated, loading, segments, router]);
+
+  if (loading) {
+    return null; 
+  }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <Stack>
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+    </Stack>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <PaperProvider theme={theme}> 
+      <AuthProvider>
+        <OrderProvider>
+          <RootLayoutNav />
+        </OrderProvider>
+      </AuthProvider>
+    </PaperProvider>
   );
 }

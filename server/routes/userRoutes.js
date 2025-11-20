@@ -20,7 +20,6 @@ router.route('/')
 // @route GET /api/users/profile
 router.get('/profile', auth, async (req, res) => {
   try {
-    // Explicitly use req.user.id from the JWT payload
     const user = await User.findById(req.user.id).select('-password'); 
 
     if (!user) return res.status(404).json({ success: false, msg: 'User not found' });
@@ -52,7 +51,6 @@ router.put('/profile', auth, async (req, res) => {
     const user = await User.findById(req.user.id).select('-password');
     if (!user) return res.status(404).json({ success: false, msg: 'User not found' });
 
-    // Update fields (only name, phone, position, avatar)
     user.name = req.body.name ?? user.name;
     user.phone = req.body.phone ?? user.phone;
     user.position = req.body.position ?? user.position;
@@ -60,7 +58,6 @@ router.put('/profile', auth, async (req, res) => {
 
     await user.save();
     
-    // Standardized response format
     res.json({
       success: true,
       data: {

@@ -10,7 +10,10 @@ const auth = require('../middleware/auth');
 // ------------------------------------------------------------------
 router.get('/', auth, async (req, res) => {
   try {
-    const items = await Inventory.find({}).sort({ createdAt: -1 });
+    const items = await Inventory.find({})
+      .populate('supplier', 'name')
+      .sort({ createdAt: -1 });
+      
     res.json({ success: true, count: items.length, data: items }); 
   } catch (err) {
     console.error('Error fetching inventory:', err.message);
@@ -28,7 +31,9 @@ router.post('/', auth, async (req, res) => {
     const item = new Inventory(req.body);
     await item.save();
     res.status(201).json({ success: true, data: item }); 
+  
   } catch (err) {
+    
     console.error('Failed to add item:', err);
     res.status(400).json({
       success: false,
@@ -46,7 +51,9 @@ router.post('/', auth, async (req, res) => {
 // ------------------------------------------------------------------
 router.get('/:id', auth, async (req, res) => {
   try {
-    const item = await Inventory.findById(req.params.id);
+    const item = await Inventory.findById(req.params.id)
+      .populate('supplier');
+
     if (!item) {
       return res.status(404).json({ success: false, msg: 'Item not found' });
     }

@@ -1,98 +1,348 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
+import { View, StyleSheet, ActivityIndicator, ScrollView, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  Card,
+  Title,
+  Paragraph,
+  useTheme,
+  Text,
+  Button,
+  List,
+  Icon, 
+} from 'react-native-paper';
+import api from '@/services/api'; 
+import { AuthContext } from '@/components/authContext'; 
+import { useRouter } from 'expo-router'; 
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
-
-export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
-
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+interface SummaryData {
+  periodRevenue: number;
+  totalSalesForPeriod: number;
+  bestSellingDish: string;
+  bestSellingDishCount: number;
 }
 
+interface Notification {
+  _id: string;
+  type: string;
+  title: string;
+  message: string;
+  status: string;
+}
+
+interface Shift {
+  _id: string;
+  user: { name: string, _id: string };
+  startTime: string; 
+  endTime: string; 
+  role: string;
+}
+
+const ManagerDashboard = () => {
+  const [summary, setSummary] = useState<SummaryData | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const theme = useTheme();
+  const auth = useContext(AuthContext);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const summaryRes = await api.get('/api/sales/summary?period=today');
+      setSummary(summaryRes.data.data);
+      
+      const notifyRes = await api.get('/api/predict/notifications');
+      setNotifications(notifyRes.data.data.slice(0, 3) || []);
+    } catch (err) {
+      console.error('Failed to fetch dashboard data:', err);
+      setError('Could not load all dashboard data.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (auth?.loading || !auth?.token) {
+        return; 
+    }
+    fetchData();
+  }, [fetchData, auth?.token, auth?.loading]);
+
+  return (
+    <ScrollView
+      contentContainerStyle={styles.scrollContainer}
+      refreshControl={
+        <RefreshControl refreshing={loading} onRefresh={fetchData} />
+      }
+    >
+      {error && (
+        <Card style={styles.card}>
+          <Card.Content>
+            <Paragraph style={{ color: theme.colors.error }}>{error}</Paragraph>
+            <Button onPress={fetchData}>Retry</Button>
+          </Card.Content>
+        </Card>
+      )}
+
+      <Title style={styles.subHeader}>Today's Snapshot</Title>
+      {loading && !summary && <ActivityIndicator size="large" style={{ marginVertical: 20 }} />}
+      
+      {summary && (
+        <View style={styles.cardRow}>
+          <Card style={styles.card}>
+            <Card.Content>
+              <Title style={styles.cardTitle}>Today's Revenue</Title>
+              <Paragraph style={styles.cardContent}>
+                ${summary.periodRevenue.toFixed(2)}
+              </Paragraph>
+            </Card.Content>
+          </Card>
+          <Card style={styles.card}>
+            <Card.Content>
+              <Title style={styles.cardTitle}>Today's Orders</Title>
+              <Paragraph style={styles.cardContent}>
+                {summary.totalSalesForPeriod}
+              </Paragraph>
+            </Card.Content>
+          </Card>
+          <Card style={styles.fullCard}>
+            <Card.Content>
+              <Title style={styles.cardTitle}>Today's Best-Seller</Title>
+              <Paragraph style={styles.cardContent}>
+                {summary.bestSellingDish || 'N/A'}
+                {summary.bestSellingDishCount > 0 && ` (${summary.bestSellingDishCount} sold)`}
+              </Paragraph>
+            </Card.Content>
+          </Card>
+        </View>
+      )}
+
+      <Title style={styles.subHeader}>Urgent Brief</Title>
+      {loading && !summary && <ActivityIndicator size="small" />}
+      
+      {!loading && notifications.length === 0 && (
+        <Card style={styles.fullCard}>
+          <Card.Content>
+            <Paragraph>No urgent alerts. All systems normal.</Paragraph>
+          </Card.Content>
+        </Card>
+      )}
+
+      {notifications.map((notif) => (
+        <List.Item
+          key={notif._id}
+          style={styles.notificationItem}
+          title={notif.title}
+          description={notif.message}
+          descriptionNumberOfLines={3}
+          left={() => <List.Icon icon="alert-circle" color={theme.colors.error} />}
+        />
+      ))}
+    </ScrollView>
+  );
+};
+
+const EmployeeDashboard = () => {
+  const [nextShift, setNextShift] = useState<Shift | null>(null);
+  const [myNotifications, setMyNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const theme = useTheme();
+  const router = useRouter();
+  const auth = useContext(AuthContext); 
+
+  const fetchEmployeeData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/api/shifts'); 
+      const shifts: Shift[] = res.data.data || [];
+      
+      const now = new Date();
+      const upcomingShifts = shifts
+        .filter(shift => new Date(shift.startTime) > now)
+        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+        
+      setNextShift(upcomingShifts[0] || null);
+
+      const notifRes = await api.get('/api/notifications/my');
+      const recentNotifs = notifRes.data.data.slice(0, 3);
+      setMyNotifications(recentNotifs);
+
+    } catch (err) {
+      console.error('Failed to fetch employee data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (auth?.loading || !auth?.token) {
+        return; 
+    }
+    fetchEmployeeData();
+  }, [fetchEmployeeData, auth?.token, auth?.loading]);
+
+  const formatShiftTime = (shift: Shift) => {
+    const start = new Date(shift.startTime);
+    const end = new Date(shift.endTime);
+    const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'long', day: 'numeric' };
+    const timeOptions: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit', hour12: true };
+    const dateStr = start.toLocaleDateString(undefined, dateOptions);
+    const timeStr = `${start.toLocaleTimeString(undefined, timeOptions)} - ${end.toLocaleTimeString(undefined, timeOptions)}`;
+    return { date: dateStr, time: timeStr };
+  };
+
+  return (
+    <ScrollView
+      contentContainerStyle={styles.scrollContainer}
+      refreshControl={
+        <RefreshControl refreshing={loading} onRefresh={fetchEmployeeData} />
+      }
+    >
+      <Title style={styles.subHeader}>Your Next Shift</Title>
+      
+      {loading && <ActivityIndicator size="large" style={{ marginVertical: 20 }} />}
+
+      {!loading && (
+        <Card style={styles.fullCard}>
+          <Card.Content>
+            {nextShift ? (
+              <>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Icon source="calendar-clock" size={30} color={theme.colors.primary} />
+                  <Title style={[styles.cardTitle, { marginLeft: 10, fontSize: 18 }]}>
+                    {formatShiftTime(nextShift).date}
+                  </Title>
+                </View>
+                <Paragraph style={[styles.cardContent, { fontSize: 20, marginTop: 10 }]}>
+                  {formatShiftTime(nextShift).time}
+                </Paragraph>
+              </>
+            ) : (
+              <Paragraph style={styles.cardContent}>
+                You have no upcoming shifts.
+              </Paragraph>
+            )}
+          </Card.Content>
+        </Card>
+      )}
+
+      {myNotifications.length > 0 && (
+        <>
+          <Title style={styles.subHeader}>Notifications</Title>
+          {myNotifications.map((notif) => (
+            <Card key={notif._id} style={[styles.fullCard, { marginBottom: 8, backgroundColor: 'white' }]}>
+              <Card.Content>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                   <Icon source="bell-ring" size={20} color={theme.colors.primary} />
+                   <Title style={{ fontSize: 16, fontWeight: 'bold', marginLeft: 8 }}>{notif.title}</Title>
+                </View>
+                <Paragraph>{notif.message}</Paragraph>
+              </Card.Content>
+            </Card>
+          ))}
+        </>
+      )}
+      
+      <Title style={styles.subHeader}>Quick Actions</Title>
+      <Button 
+        mode="contained" 
+        icon="calendar" 
+        style={styles.actionButton}
+        contentStyle={styles.actionButtonContent}
+        onPress={() => router.push('/(tabs)/shifts')}
+      >
+        View Full Schedule
+      </Button>
+      <Button 
+        mode="outlined" 
+        icon="book-open-variant" 
+        style={styles.actionButton}
+        contentStyle={styles.actionButtonContent}
+        onPress={() => router.push('/(tabs)/menu')}
+      >
+        View Menu
+      </Button>
+    </ScrollView>
+  );
+};
+
+const HomePage = () => {
+  const auth = useContext(AuthContext);
+  const user = auth?.user;
+  
+  const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'manager';
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.headerContainer}>
+        <Title style={styles.header}>Welcome, {user?.name || 'User'}</Title>
+      </View>
+
+      {isManagerOrAdmin ? <ManagerDashboard /> : <EmployeeDashboard />}
+      
+    </SafeAreaView>
+  );
+};
+
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5ff', 
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  scrollContainer: {
+    padding: 16,
+    paddingTop: 0, 
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  headerContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  header: {
+    fontSize: 26,
+    fontWeight: 'bold',
+  },
+  subHeader: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  cardRow: {
+    flexDirection: 'row', 
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  card: {
+    width: '48%', 
+    marginBottom: 10,
+  },
+  fullCard: {
+    width: '100%', 
+    marginBottom: 10,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  cardContent: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 5,
+  },
+  notificationItem: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    marginVertical: 4,
+    paddingLeft: 15,
+  },
+  actionButton: {
+    marginVertical: 6,
+  },
+  actionButtonContent: {
+    height: 50,
   },
 });
+
+export default HomePage;

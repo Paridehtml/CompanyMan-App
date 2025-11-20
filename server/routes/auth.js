@@ -1,8 +1,7 @@
-// routes/auth.js
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const User = require('../models/userModel'); // Import the corrected User model
+const User = require('../models/userModel');
 
 // ------------------------------------------------------------------
 // @route   POST /api/auth/register
@@ -28,7 +27,7 @@ router.post('/register', async (req, res) => {
       role: role || 'employee' 
     });
 
-    // 3. Save user (triggers password hashing)
+    // 3. Save user
     await user.save();
 
     // 4. User created: Create and return JWT
@@ -41,15 +40,27 @@ router.post('/register', async (req, res) => {
       },
     };
 
-    jwt.sign(
+    // Create the token
+    const token = jwt.sign(
       payload,
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN },
-      (err, token) => {
-        if (err) throw err;
-        res.status(201).json({ token });
-      }
+      { expiresIn: process.env.JWT_EXPIRES_IN || '5h' }
     );
+
+    // Create a user object to send back
+    const userResponse = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    };
+
+    // Send BOTH the token and the user
+    res.status(201).json({
+      token,
+      user: userResponse
+    });
+    
   } catch (err) {
     console.error('Registration Error:', err.message);
     res.status(500).json({ msg: 'Server Error during registration', error: err.message });
@@ -66,20 +77,21 @@ router.post('/login', async (req, res) => {
 
   try {
     // 1. Check if user exists by email
+    // 'user' here contains the full user document from MongoDB
     const user = await User.findOne({ email });
 
     if (!user) {
       return res.status(401).json({ msg: 'Invalid credentials' });
     }
 
-    // 2. Check if password matches (uses userModel.js method)
+    // 2. Check if password matches
     const isMatch = await user.comparePassword(password); 
 
     if (!isMatch) {
       return res.status(401).json({ msg: 'Invalid credentials' });
     }
 
-    // 3. User authenticated: Create and return JWT
+    // 3. User authenticated: Create payload
     const payload = {
       user: {
         id: user.id,
@@ -89,15 +101,27 @@ router.post('/login', async (req, res) => {
       },
     };
 
-    jwt.sign(
+    // 4. Create the token
+    const token = jwt.sign(
       payload,
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN },
-      (err, token) => {
-        if (err) throw err;
-        res.json({ token });
-      }
+      { expiresIn: process.env.JWT_EXPIRES_IN || '5h' }
     );
+
+    // 5. Create a user object to send back
+    const userResponse = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    };
+
+    // 6. Send BOTH the token and the user
+    res.json({
+      token,
+      user: userResponse
+    });
+
   } catch (err) {
     console.error('Login Error:', err.message);
     res.status(500).send('Server Error during login');
