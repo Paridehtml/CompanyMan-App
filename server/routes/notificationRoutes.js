@@ -6,19 +6,15 @@ const Notification = require('../models/notificationModel');
 router.use(auth);
 
 // @route   GET /api/notifications/my
-// @desc    Get notifications for the logged-in user
-// @access  Private (All users)
+// @desc    Get notifications for the logged-in user ONLY
 router.get('/my', async (req, res) => {
   try {
-    // Find notifications where:
-    // 1. targetId matches the user's ID (Personal)
-    // 2. OR targetId is null (Global/System broadcasts)
     const notifications = await Notification.find({
       $or: [
         { targetId: req.user.id },
-        { targetId: null } 
+        { targetId: null }
       ]
-    }).sort({ createdAt: -1 }).limit(20); // Newest first
+    }).sort({ createdAt: -1 }).limit(20);
 
     res.json({ success: true, data: notifications });
   } catch (err) {
@@ -29,7 +25,6 @@ router.get('/my', async (req, res) => {
 
 // @route   PUT /api/notifications/:id/read
 // @desc    Mark a notification as read
-// @access  Private
 router.put('/:id/read', async (req, res) => {
   try {
     const notification = await Notification.findById(req.params.id);
@@ -37,8 +32,6 @@ router.put('/:id/read', async (req, res) => {
     if (!notification) {
       return res.status(404).json({ msg: 'Notification not found' });
     }
-
-    // Ensure user owns this notification
     if (notification.targetId && notification.targetId.toString() !== req.user.id) {
       return res.status(403).json({ msg: 'Not authorized' });
     }
@@ -49,6 +42,30 @@ router.put('/:id/read', async (req, res) => {
     res.json({ success: true, data: notification });
   } catch (err) {
     res.status(500).json({ success: false, msg: 'Server Error' });
+  }
+});
+
+// @route   DELETE /api/notifications/:id
+// @desc    Delete a notification
+router.delete('/:id', async (req, res) => {
+  try {
+    const notification = await Notification.findById(req.params.id);
+
+    if (!notification) {
+      return res.status(404).json({ msg: 'Notification not found' });
+    }
+
+    if (notification.targetId && notification.targetId.toString() !== req.user.id) {
+        if (req.user.role !== 'admin') {
+            return res.status(401).json({ msg: 'Not authorized to delete this notification' });
+        }
+    }
+
+    await Notification.deleteOne({ _id: req.params.id });
+    res.json({ success: true, msg: 'Notification removed' });
+  } catch (err) {
+    console.error('Error deleting notification:', err);
+    res.status(500).send('Server Error');
   }
 });
 

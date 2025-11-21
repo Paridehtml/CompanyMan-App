@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Shift = require('../models/Shifts');
 const Notification = require('../models/notificationModel');
+const User = require('../models/userModel'); 
 const auth = require('../middleware/auth');
 
 router.use(auth);
@@ -66,20 +67,46 @@ router.post('/', isManagerOrAdmin, async (req, res) => {
     const shift = new Shift(req.body);
     await shift.save();
     
-    // Clean Date Formatting
     const shiftDate = new Date(shift.date).toISOString().split('T')[0];
     
+    // 1. Fetch Names
+    let assignerName = 'a Manager';
+    let staffName = 'Staff Member';
+
+    try {
+        const assigner = await User.findById(req.user.id);
+        if (assigner) assignerName = assigner.name;
+
+        const staffUser = await User.findById(shift.staffId);
+        if (staffUser) staffName = staffUser.name;
+    } catch (uErr) { console.error("Could not fetch names", uErr); }
+
+    // 2. Notify the Employee
     try {
         await Notification.create({
             type: 'shift_update',
             title: 'New Shift Assigned',
-            message: `You have been assigned a ${shift.shiftType} shift on ${shiftDate}.`,
+            message: `You have been assigned a ${shift.shiftType} shift on ${shiftDate} from ${shift.startTime} to ${shift.endTime} by ${assignerName}.`,
             targetId: shift.staffId,
             status: 'unread'
         });
-    } catch (nErr) {
-        console.error("Notification failed", nErr);
-    }
+    } catch (nErr) { console.error("Employee notification failed", nErr); }
+
+    // 3. Notify ALL Admins (Activity Log)
+    try {
+        const admins = await User.find({ role: { $regex: /^admin$/i } });
+        const notesText = shift.notes ? ` Notes: "${shift.notes}"` : '';
+
+        for (const admin of admins) {
+            await Notification.create({
+                type: 'shift_update', 
+                title: 'Activity Log',
+                message: `${assignerName} assigned a shift to ${staffName} on ${shiftDate} (${shift.startTime}-${shift.endTime}).${notesText}`,
+                targetId: admin._id,
+                status: 'unread'
+            });
+        }
+    } catch (adminErr) { console.error("Admin notification failed", adminErr); }
 
     res.status(201).json({ data: shift });
   } catch (err) {
@@ -94,18 +121,46 @@ router.put('/:id', isManagerOrAdmin, async (req, res) => {
     const shift = await Shift.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!shift) return res.status(404).json({ error: 'Shift not found' });
     
-    // Clean Date Formatting
     const shiftDate = new Date(shift.date).toISOString().split('T')[0];
 
+    // 1. Fetch Names
+    let assignerName = 'a Manager';
+    let staffName = 'Staff Member';
+
+    try {
+        const assigner = await User.findById(req.user.id);
+        if (assigner) assignerName = assigner.name;
+
+        const staffUser = await User.findById(shift.staffId);
+        if (staffUser) staffName = staffUser.name;
+    } catch (uErr) { console.error("Could not fetch names", uErr); }
+
+    // 2. Notify the Employee
     try {
         await Notification.create({
             type: 'shift_update',
             title: 'Shift Updated',
-            message: `Your ${shift.shiftType} shift on ${shiftDate} has been updated.`,
+            message: `Your ${shift.shiftType} shift on ${shiftDate} (from ${shift.startTime} to ${shift.endTime}) has been updated by ${assignerName}.`,
             targetId: shift.staffId,
             status: 'unread'
         });
-    } catch (nErr) { console.error("Notification failed", nErr); }
+    } catch (nErr) { console.error("Employee notification failed", nErr); }
+
+    // 3. Notify ALL Admins (Activity Log)
+    try {
+        const admins = await User.find({ role: { $regex: /^admin$/i } });
+        const notesText = shift.notes ? ` Notes: "${shift.notes}"` : '';
+
+        for (const admin of admins) {
+            await Notification.create({
+                type: 'shift_update',
+                title: 'Activity Log',
+                message: `${assignerName} updated the shift for ${staffName} on ${shiftDate} (${shift.startTime}-${shift.endTime}).${notesText}`,
+                targetId: admin._id,
+                status: 'unread'
+            });
+        }
+    } catch (adminErr) { console.error("Admin notification failed", adminErr); }
 
     res.json({ data: shift });
   } catch (err) {

@@ -33,8 +33,9 @@ interface Notification {
 interface Shift {
   _id: string;
   user: { name: string, _id: string };
-  startTime: string; 
-  endTime: string; 
+  date: string;
+  startTime: string;
+  endTime: string;
   role: string;
 }
 
@@ -45,6 +46,7 @@ const ManagerDashboard = () => {
   const [error, setError] = useState<string | null>(null);
   const theme = useTheme();
   const auth = useContext(AuthContext);
+  const router = useRouter();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -53,7 +55,7 @@ const ManagerDashboard = () => {
       const summaryRes = await api.get('/api/sales/summary?period=today');
       setSummary(summaryRes.data.data);
       
-      const notifyRes = await api.get('/api/predict/notifications');
+      const notifyRes = await api.get('/api/notifications/my');
       setNotifications(notifyRes.data.data.slice(0, 3) || []);
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
@@ -93,7 +95,7 @@ const ManagerDashboard = () => {
         <View style={styles.cardRow}>
           <Card style={styles.card}>
             <Card.Content>
-              <Title style={styles.cardTitle}>Today's Revenue</Title>
+              <Title style={styles.cardTitle}>Revenue</Title>
               <Paragraph style={styles.cardContent}>
                 ${summary.periodRevenue.toFixed(2)}
               </Paragraph>
@@ -101,7 +103,7 @@ const ManagerDashboard = () => {
           </Card>
           <Card style={styles.card}>
             <Card.Content>
-              <Title style={styles.cardTitle}>Today's Orders</Title>
+              <Title style={styles.cardTitle}>Orders</Title>
               <Paragraph style={styles.cardContent}>
                 {summary.totalSalesForPeriod}
               </Paragraph>
@@ -109,7 +111,7 @@ const ManagerDashboard = () => {
           </Card>
           <Card style={styles.fullCard}>
             <Card.Content>
-              <Title style={styles.cardTitle}>Today's Best-Seller</Title>
+              <Title style={styles.cardTitle}>Best-Seller</Title>
               <Paragraph style={styles.cardContent}>
                 {summary.bestSellingDish || 'N/A'}
                 {summary.bestSellingDishCount > 0 && ` (${summary.bestSellingDishCount} sold)`}
@@ -119,13 +121,13 @@ const ManagerDashboard = () => {
         </View>
       )}
 
-      <Title style={styles.subHeader}>Latest News</Title>
+      <Title style={styles.subHeader}>What's New</Title>
       {loading && !summary && <ActivityIndicator size="small" />}
       
       {!loading && notifications.length === 0 && (
         <Card style={styles.fullCard}>
           <Card.Content>
-            <Paragraph>No urgent alerts. All systems normal.</Paragraph>
+            <Paragraph>No new alerts. All systems normal.</Paragraph>
           </Card.Content>
         </Card>
       )}
@@ -140,6 +142,40 @@ const ManagerDashboard = () => {
           left={() => <List.Icon icon="alert-circle" color={theme.colors.error} />}
         />
       ))}
+
+      <Title style={styles.subHeader}>Quick Actions</Title>
+      
+      <Button 
+        mode="contained" 
+        icon="chart-bar" 
+        style={styles.actionButton}
+        contentStyle={styles.actionButtonContent}
+        onPress={() => router.push('/(tabs)/sales')}
+      >
+        View Sales Report
+      </Button>
+
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        <Button 
+          mode="outlined" 
+          icon="archive" 
+          style={[styles.actionButton, { width: '48%' }]}
+          contentStyle={styles.actionButtonContent}
+          onPress={() => router.push('/(tabs)/inventory')}
+        >
+          Inventory
+        </Button>
+        
+        <Button 
+          mode="outlined" 
+          icon="calendar-edit" 
+          style={[styles.actionButton, { width: '48%' }]}
+          contentStyle={styles.actionButtonContent}
+          onPress={() => router.push('/(tabs)/shifts')}
+        >
+          Manage Shifts
+        </Button>
+      </View>
     </ScrollView>
   );
 };
@@ -155,15 +191,8 @@ const EmployeeDashboard = () => {
   const fetchEmployeeData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/api/shifts'); 
-      const shifts: Shift[] = res.data.data || [];
-      
-      const now = new Date();
-      const upcomingShifts = shifts
-        .filter(shift => new Date(shift.startTime) > now)
-        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-        
-      setNextShift(upcomingShifts[0] || null);
+      const res = await api.get('/api/shifts/next-upcoming'); 
+      setNextShift(res.data.data); 
 
       const notifRes = await api.get('/api/notifications/my');
       const recentNotifs = notifRes.data.data.slice(0, 3);
@@ -184,13 +213,30 @@ const EmployeeDashboard = () => {
   }, [fetchEmployeeData, auth?.token, auth?.loading]);
 
   const formatShiftTime = (shift: Shift) => {
-    const start = new Date(shift.startTime);
-    const end = new Date(shift.endTime);
-    const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'long', day: 'numeric' };
-    const timeOptions: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit', hour12: true };
-    const dateStr = start.toLocaleDateString(undefined, dateOptions);
-    const timeStr = `${start.toLocaleTimeString(undefined, timeOptions)} - ${end.toLocaleTimeString(undefined, timeOptions)}`;
-    return { date: dateStr, time: timeStr };
+    try {
+      // 1. Parse the main date
+      const shiftDate = new Date(shift.date);
+      const combineDateAndTime = (baseDate: Date, timeString: string) => {
+        if (!timeString) return baseDate;
+        const [hours, minutes] = timeString.split(':').map(Number);
+        const newDate = new Date(baseDate);
+        newDate.setHours(hours, minutes, 0, 0);
+        return newDate;
+      };
+
+      const start = combineDateAndTime(shiftDate, shift.startTime);
+      const end = combineDateAndTime(shiftDate, shift.endTime);
+
+      const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'long', day: 'numeric' };
+      const timeOptions: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit', hour12: true };
+
+      const dateStr = start.toLocaleDateString(undefined, dateOptions);
+      const timeStr = `${start.toLocaleTimeString(undefined, timeOptions)} - ${end.toLocaleTimeString(undefined, timeOptions)}`;
+      
+      return { date: dateStr, time: timeStr };
+    } catch (e) {
+      return { date: 'Invalid Date', time: 'Check Schedule' };
+    }
   };
 
   return (

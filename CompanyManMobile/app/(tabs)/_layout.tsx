@@ -8,14 +8,15 @@ import { AuthContext } from '@/components/authContext';
 import { OrderContext } from '@/components/OrderContext';
 import api from '@/services/api'; 
 
-// (Interfaces and Header components - no change)
 interface Notification {
   _id: string;
   type: string;
   title: string;
   message: string;
   targetId?: string;
+  status: string;
 }
+
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
   color: string;
@@ -42,7 +43,6 @@ function HeaderCartButton() {
   );
 }
 
-// --- Modified HeaderMenu (Left Side) ---
 function HeaderMenu() {
   const router = useRouter();
   const auth = useContext(AuthContext);
@@ -76,13 +76,13 @@ function HeaderMenu() {
       >
         <Pressable style={styles.modalBackdrop} onPress={closeMenu}>
           <Pressable style={styles.menuContainer}>
-            {isManagerOrAdmin && (
-              <List.Item
-                title="Inbox"
-                left={props => <List.Icon {...props} icon="email-outline" />}
-                onPress={() => navigate('/(tabs)/alerts')}
-              />
-            )}
+            
+            <List.Item
+              title="Inbox"
+              left={props => <List.Icon {...props} icon="email-outline" />}
+              onPress={() => navigate('/(tabs)/alerts')}
+            />
+            
             <List.Item
               title="Profile"
               left={props => <List.Icon {...props} icon="account-circle" />}
@@ -119,7 +119,6 @@ export default function TabLayout() {
   const [unreadNotifs, setUnreadNotifs] = useState<Notification[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  // PWA Service Worker Registration
   useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -133,19 +132,21 @@ export default function TabLayout() {
   }, []);
 
   useEffect(() => { 
-    if (auth && auth.isAuthenticated && isManagerOrAdmin) {
+    if (auth && auth.isAuthenticated) {
       const fetchUnread = async () => {
         try {
-          const res = await api.get('/api/predict/notifications/unread');
-          if (res.data.data && res.data.data.length > 0) {
-            setUnreadNotifs(res.data.data);
+          const res = await api.get('/api/notifications/my');
+          const unread = res.data.data.filter((n: Notification) => n.status === 'unread');
+          
+          if (unread.length > 0) {
+            setUnreadNotifs(unread);
             setIsModalVisible(true);
           }
         } catch (err) { console.error("Failed to fetch unread notifications", err); }
       };
       fetchUnread();
     }
-  }, [auth, auth?.isAuthenticated, isManagerOrAdmin]);
+  }, [auth, auth?.isAuthenticated]);
   
   const handleCloseNotification = async () => {
     const currentNotification = unreadNotifs[0];
@@ -154,8 +155,9 @@ export default function TabLayout() {
       return;
     }
     try {
-      await api.post('/api/predict/notifications/mark-read', { ids: [currentNotification._id] });
+      await api.put(`/api/notifications/${currentNotification._id}/read`);
     } catch (err) { console.error("Failed to mark notification as read", err); }
+    
     setUnreadNotifs(prevNotifs => {
       const remainingNotifs = prevNotifs.slice(1);
       if (remainingNotifs.length === 0) {
@@ -185,11 +187,9 @@ export default function TabLayout() {
       <Tabs
         screenOptions={{
           tabBarActiveTintColor: '#007AFF',
-          // --- FIX: Split Header Components ---
-          headerLeft: () => <HeaderMenu />,        // Menu on Left
-          headerRight: () => <HeaderCartButton />, // Cart on Right
-          headerTitleAlign: 'center',              // Center the title
-          // ------------------------------------
+          headerLeft: () => <HeaderMenu />,
+          headerRight: () => <HeaderCartButton />,
+          headerTitleAlign: 'center',
         }}
       >
         <Tabs.Screen
@@ -236,7 +236,6 @@ export default function TabLayout() {
             title: 'Waste',
             tabBarIcon: ({ color }) => <TabBarIcon name="trash" color={color} />,
             href: null, 
-            // Keep the specific back button for this sub-screen
              headerLeft: () => {
               const router = useRouter(); 
               return (
@@ -287,7 +286,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalView: {
-    width: '100%',
+    width: '90%',
     backgroundColor: 'white',
     borderRadius: 10,
     padding: 20,

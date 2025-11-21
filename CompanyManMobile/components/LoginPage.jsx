@@ -2,11 +2,8 @@ import React, { useState, useContext } from 'react';
 import { View, StyleSheet, Alert, Text, Image } from 'react-native'; 
 import { useRouter } from 'expo-router';
 import { AuthContext } from './authContext';
-import axios from 'axios';
+import api from '../services/api'; // Imports the central API configuration
 import { TextInput, Button, Title } from 'react-native-paper'; 
-
-// Ensure this IP matches your current computer IP
-const API_URL = 'http://192.168.0.72:5001'; 
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -21,7 +18,11 @@ const LoginPage = () => {
     setError('');
     setLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/api/auth/login`, { email, password });
+      // We now use 'api.post' and the relative path.
+      // The Base URL (IP address) is handled automatically by api.js
+      const res = await api.post('/api/auth/login', { email, password });
+      
+      // Save the token and user data
       login(res.data.token, res.data.user); 
     } catch (err) {
       const errorMsg = err.response?.data?.msg || 'Login failed';
@@ -35,13 +36,11 @@ const LoginPage = () => {
     <View style={styles.container}>
       
       <View style={styles.logoContainer}>
-
         <Image 
           source={require('../assets/images/icon.png')} 
           style={styles.logo}
           resizeMode="contain"
         />
-
       </View>
 
       <Title style={styles.title}>Login</Title>

@@ -24,7 +24,7 @@ The project is divided into two main folders: `server` (Backend) and `CompanyMan
     ```
 3.  **Environment Configuration:**
     * Rename the file `.env.example` to `.env`.
-    * Open `.env` and fill in the required keys (See `NOTES_FOR_EXAMINERS.txt` for the credentials).
+    * Open `.env` and fill in the required keys (See `NOTES.md` for the credentials).
 4.  Start the server:
     ```bash
     npm start

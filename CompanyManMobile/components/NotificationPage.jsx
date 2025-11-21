@@ -8,7 +8,6 @@ import {
   Button,
   TouchableOpacity,
   Alert,
-  Animated,
   Pressable, 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,10 +20,6 @@ const NotificationItem = ({ item, onDelete, formatDate, getCardStyle }) => {
   const [expanded, setExpanded] = useState(false);
 
   const renderRightActions = (progress, dragX) => {
-    const trans = dragX.interpolate({
-      inputRange: [-100, 0],
-      outputRange: [0, 100],
-    });
     return (
       <TouchableOpacity onPress={() => onDelete(item._id)} style={styles.deleteActionContainer}>
         <View style={styles.deleteActionView}>
@@ -87,7 +82,7 @@ const NotificationPage = () => {
     if (!auth || !auth.token) return;
     try {
       setLoading(true);
-      const res = await api.get('/api/predict/notifications');
+      const res = await api.get('/api/notifications/my');
       setNotifications(res.data.data || []);
       setError(null);
     } catch (err) {
@@ -102,7 +97,7 @@ const NotificationPage = () => {
   }, [fetchNotifications]);
 
   const handleDelete = (id) => {
-    api.delete(`/api/predict/notifications/${id}`)
+    api.delete(`/api/notifications/${id}`)
       .then(() => {
         setNotifications(prev => prev.filter(n => n._id !== id));
       })

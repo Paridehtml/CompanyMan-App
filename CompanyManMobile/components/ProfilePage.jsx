@@ -12,9 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthContext } from './authContext'; 
-import axios from 'axios';
-
-const API_URL = 'http://192.168.0.72:5001'; 
+import api from '../services/api'; // <--- UPDATED: Import centralized API
 
 const ProfilePage = () => {
   const auth = useContext(AuthContext);
@@ -33,9 +31,11 @@ const ProfilePage = () => {
     if (!auth || !auth.token) return;
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/api/users/profile`, {
-        headers: { Authorization: `Bearer ${auth.token}` }
-      });
+      
+      // UPDATED: Use api.get() with relative path. 
+      // Headers and Base URL are handled automatically.
+      const response = await api.get('/api/users/profile');
+      
       const userData = response.data.data; 
       setUser(userData);
       setForm({
@@ -46,6 +46,7 @@ const ProfilePage = () => {
       });
       setError(null);
     } catch (err) { 
+      console.error(err);
       setError('Failed to fetch profile.');
     } finally {
       setLoading(false);
@@ -63,12 +64,13 @@ const ProfilePage = () => {
   const handleSave = async () => {
     setError(null);
     try {
-      await axios.put(`${API_URL}/api/users/profile`, form, {
-        headers: { Authorization: `Bearer ${auth.token}` }
-      });
+      // UPDATED: Use api.put() with relative path.
+      await api.put('/api/users/profile', form);
+      
       setEditing(false);
       fetchProfile();
     } catch (err) {
+      console.error(err);
       Alert.alert('Error', 'Profile update failed');
     }
   };
