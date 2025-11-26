@@ -31,7 +31,7 @@
       "description": "Restaurant Management System",
       "themeColor": "#306eff",
       "backgroundColor": "#ffffff",
-      "display": "standalone", 
+      "display": "standalone",
       "scope": "/",
       "startUrl": "/"
     },
@@ -41,6 +41,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ffe4bdfc-c3a5-435b-a570-5f6e1337ab5f"
+      }
     }
   }
 }

@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthContext } from './authContext'; 
-import api from '../services/api'; // <--- UPDATED: Import centralized API
+import api from '../services/api';
 
 const ProfilePage = () => {
   const auth = useContext(AuthContext);
@@ -32,8 +32,6 @@ const ProfilePage = () => {
     try {
       setLoading(true);
       
-      // UPDATED: Use api.get() with relative path. 
-      // Headers and Base URL are handled automatically.
       const response = await api.get('/api/users/profile');
       
       const userData = response.data.data; 
@@ -64,7 +62,6 @@ const ProfilePage = () => {
   const handleSave = async () => {
     setError(null);
     try {
-      // UPDATED: Use api.put() with relative path.
       await api.put('/api/users/profile', form);
       
       setEditing(false);

@@ -359,8 +359,8 @@ const MenuPage = () => {
         enabled={!isEmployee} 
       >
         <Card style={styles.card}>
-          <Card.Title 
-            title={`${dish.name} - $${dish.price.toFixed(2)}`}
+          <Card.Title
+            title={`${dish.name} - £${dish.price.toFixed(2)}`}
             subtitle={dish.category}
           />
           <Card.Content>

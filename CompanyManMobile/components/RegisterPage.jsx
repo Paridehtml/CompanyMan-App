@@ -8,10 +8,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AuthContext } from './authContext';
-import axios from 'axios';
+import api from '../services/api';
 import { TextInput, Button, Title } from 'react-native-paper'; 
-
-const API_URL = 'http://192.168.0.67:5001'; 
 
 const RegisterPage = () => {
   const [name, setName] = useState('');
@@ -40,12 +38,11 @@ const RegisterPage = () => {
 
     setLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/api/auth/register`, { 
+      const res = await api.post('/api/auth/register', { 
         name, 
         email, 
         password,
       });
-      
       login(res.data.token, res.data.user); 
       
     } catch (err) {

@@ -58,7 +58,7 @@ export default function CartModal() {
         renderItem={({ item }) => (
           <List.Item
             title={`${item.name} (x${item.quantity})`}
-            description={`$${(item.price * item.quantity).toFixed(2)}`}
+            description={`£${(item.price * item.quantity).toFixed(2)}`}
             right={() => (
               <IconButton
                 icon="minus-circle"
@@ -79,7 +79,7 @@ export default function CartModal() {
       <View style={styles.footer}>
         <View style={styles.totalRow}>
           <Text style={styles.totalText}>Total ({itemCount} items):</Text>
-          <Text style={styles.totalPrice}>${totalPrice.toFixed(2)}</Text>
+          <Text style={styles.totalPrice}>£{totalPrice.toFixed(2)}</Text>
         </View>
         <Button
           mode="contained"

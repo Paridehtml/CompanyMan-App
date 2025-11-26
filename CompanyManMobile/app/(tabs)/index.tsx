@@ -97,7 +97,7 @@ const ManagerDashboard = () => {
             <Card.Content>
               <Title style={styles.cardTitle}>Revenue</Title>
               <Paragraph style={styles.cardContent}>
-                ${summary.periodRevenue.toFixed(2)}
+                £{summary.periodRevenue.toFixed(2)}
               </Paragraph>
             </Card.Content>
           </Card>

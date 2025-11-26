@@ -18,7 +18,6 @@ const api = axios.create({
   },
 });
 
-// --- Helper functions to handle storage on Web vs Mobile ---
 const getToken = async () => {
   if (Platform.OS === 'web') {
     return localStorage.getItem('token');
@@ -33,11 +32,10 @@ const removeToken = async () => {
     await SecureStore.deleteItemAsync('token');
   }
 };
-// ---------------------------------------------------------
 
 api.interceptors.request.use(
   async (config) => {
-    const token = await getToken(); // Updated to use helper
+    const token = await getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -51,9 +49,8 @@ api.interceptors.response.use(
   async (error) => {
     if (error.response && error.response.status === 401) {
       console.log('Token expired or invalid.');
-      await removeToken(); // Updated to use helper
+      await removeToken();
       
-      // Optional: If you want to force a reload on web to clear state
       if (Platform.OS === 'web') {
         window.location.href = '/';
       }

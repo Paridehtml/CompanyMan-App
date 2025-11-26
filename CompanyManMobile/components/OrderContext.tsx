@@ -72,7 +72,6 @@ export const OrderProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     try {
-      // "Unroll" the cart items into a flat array of IDs
       const dishIds = orderItems.reduce((acc, item) => {
         for (let i = 0; i < item.quantity; i++) {
           acc.push(item._id);

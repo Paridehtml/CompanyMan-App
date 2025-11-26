@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
 const Inventory = require('../models/inventoryModel');
 const Notification = require('../models/notificationModel');
 const Menu = require('../models/MenuModel'); 
@@ -8,11 +7,12 @@ const auth = require('../middleware/auth');
 
 const LOW_STOCK_THRESHOLD = 10;
 const HIGH_STOCK_THRESHOLD = 50;
-const CHECK_INTERVAL_MS = 3600000;
+const CHECK_INTERVAL_MS = 3600000; // 1 Hour
 const RETRY_DELAY_MS = 1000;
 const MAX_RETRIES = 3;
 
-// createNotification & callGeminiAPI functions
+// --- Helper Functions ---
+
 const createNotification = async (type, title, message, targetId = null) => {
   try {
     const notification = new Notification({ type, title, message, targetId, status: 'unread' });
@@ -24,47 +24,51 @@ const createNotification = async (type, title, message, targetId = null) => {
 };
 
 const callGeminiAPI = async (systemPrompt, userQuery) => {
-    const apiKey = process.env.GEMINI_API_KEY; 
-    if (!apiKey) {
-      console.error("GEMINI_API_KEY is not set.");
-      return "Marketing AI service is unavailable: API Key missing.";
-    }
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-    const payload = {
-        contents: [{ parts: [{ text: userQuery }] }],
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-    };
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-        try {
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (!response.ok) {
-              if (response.status === 403) throw new Error("API status 403: Forbidden (Invalid API Key)");
-              if (response.status === 429 || response.status >= 500) {
-                  if (attempt < MAX_RETRIES - 1) {
-                      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * (2 ** attempt)));
-                      continue; 
-                  }
-              }
-              throw new Error(`API returned status ${response.status}`);
-            }
-            const result = await response.json();
-            return result.candidates?.[0]?.content?.parts?.[0]?.text || "AI failed to generate a suggestion.";
-        } catch (error) {
-            console.error(`Gemini API attempt ${attempt + 1} failed:`, error.message);
-            if (attempt === MAX_RETRIES - 1) return "Marketing AI service is unavailable.";
+  const apiKey = process.env.GEMINI_API_KEY; 
+  if (!apiKey) {
+    console.error("GEMINI_API_KEY is not set.");
+    return "Marketing AI service is unavailable: API Key missing.";
+  }
+
+  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+  const payload = {
+    contents: [{ parts: [{ text: userQuery }] }],
+    systemInstruction: { parts: [{ text: systemPrompt }] },
+  };
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        if (response.status === 403) throw new Error("API status 403: Forbidden (Invalid API Key)");
+        if (response.status === 429 || response.status >= 500) {
+          if (attempt < MAX_RETRIES - 1) {
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * (2 ** attempt)));
+            continue; 
+          }
         }
+        throw new Error(`API returned status ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result.candidates?.[0]?.content?.parts?.[0]?.text || "AI failed to generate a suggestion.";
+    } catch (error) {
+      console.error(`Gemini API attempt ${attempt + 1} failed:`, error.message);
+      if (attempt === MAX_RETRIES - 1) return "Marketing AI service is unavailable.";
     }
+  }
 };
 
-
-// Calculates food cost
 const getMenuFoodCost = (dish) => {
   let totalCost = 0;
   let missingCostData = false;
+
+  if (!dish.recipe) return { foodCost: 0, profitMargin: 0, missingCostData: true };
 
   for (const item of dish.recipe) {
     const inventoryItem = item.inventoryItem;
@@ -74,28 +78,24 @@ const getMenuFoodCost = (dish) => {
       continue;
     }
 
-    const {
-      purchasePrice, purchaseUnit, purchaseQuantity, unit: stockingUnit
-    } = inventoryItem;
+    const { purchasePrice, purchaseUnit, purchaseQuantity, unit: stockingUnit } = inventoryItem;
 
-    if (purchasePrice === null || purchasePrice < 0 || !purchaseQuantity) {
+    if (!purchasePrice || purchasePrice < 0 || !purchaseQuantity) {
       missingCostData = true;
       continue;
     }
 
     const pricePerPurchaseUnit = purchasePrice / purchaseQuantity;
+    
     const getBaseUnit = (unit) => {
-      if (unit === 'kg') return 1000;
-      if (unit === 'g') return 1;
-      if (unit === 'l') return 1000;
-      if (unit === 'ml') return 1;
-      if (unit === 'unit') return 1;
+      if (unit === 'kg' || unit === 'l') return 1000;
       return 1;
     };
 
     const massUnits = ['g', 'kg'];
     const volUnits = ['ml', 'l'];
 
+    // Check compatibility
     if (
       (massUnits.includes(purchaseUnit) && volUnits.includes(stockingUnit)) ||
       (volUnits.includes(purchaseUnit) && massUnits.includes(stockingUnit))
@@ -107,7 +107,6 @@ const getMenuFoodCost = (dish) => {
     const purchaseUnitsInBase = getBaseUnit(purchaseUnit);
     const stockingUnitsInBase = getBaseUnit(stockingUnit);
     
-    // Avoid division by zero if units are bad
     if (stockingUnitsInBase === 0) {
       missingCostData = true;
       continue;
@@ -119,7 +118,6 @@ const getMenuFoodCost = (dish) => {
     if (purchaseUnit === 'unit' && stockingUnit === 'unit') {
       pricePerStockUnit = pricePerPurchaseUnit;
     } else {
-      // Avoid division by zero if conversion is bad
       if (conversionRatio === 0) {
         missingCostData = true;
         continue;
@@ -142,7 +140,6 @@ const getMenuFoodCost = (dish) => {
     const recipeUnitInBase = getBaseUnit(recipeUnit);
     const stockingUnitInBaseFinal = getBaseUnit(stockingUnit);
     
-    // Avoid division by zero
     if (stockingUnitInBaseFinal === 0) {
       missingCostData = true;
       continue;
@@ -157,30 +154,28 @@ const getMenuFoodCost = (dish) => {
   const profit = dish.price - totalCost;
   const profitMargin = dish.price > 0 ? (profit / dish.price) * 100 : 0;
 
-  return { foodCost: totalCost, profitMargin: profitMargin, missingCostData };
+  return { foodCost: totalCost, profitMargin, missingCostData };
 };
 
+// --- Background Job ---
 
 const runMenuAnalysisJob = async () => {
   console.log('Running background job: Analyzing menu, inventory, and profit...');
   try {
-    // 1. Get all dishes, FULLY populated with their inventory items
     const allDishes = await Menu.find().populate({
       path: 'recipe.inventoryItem',
       model: 'Inventory',
     });
     
-    // 2. Get all inventory items
     const allInventory = await Inventory.find();
-    
     const inventoryMap = new Map(allInventory.map(item => [item._id.toString(), { quantity: item.quantity, unit: item.unit }]));
     
-    // --- This analysis is from your old job (dish-first) ---
     const analysis = {
       lowStock: [],
       cannotMake: []
     };
 
+    // Analyze Dishes
     for (const dish of allDishes) {
       let dishStatus = 'canMake';
       let lowestStockIngredient = null;
@@ -193,39 +188,21 @@ const runMenuAnalysisJob = async () => {
         const inventoryItem = ingredient.inventoryItem; 
         if (!inventoryItem) {
           dishStatus = 'cannotMake';
-          reason = `${ingredient.name} not in inventory DB`;
+          reason = `${ingredient.name} missing from DB`;
           break;
         }
 
         const stockData = inventoryMap.get(inventoryItem._id.toString());
         if (!stockData) {
-            dishStatus = 'cannotMake';
-            reason = `${ingredient.name} not in stock map`;
-            break;
-        }
-        
-        // It compares recipe unit (e.g., 'g') to inventory STOCKING unit (e.g., 'g')
-        const massUnits = ['g', 'kg'];
-        const volUnits = ['ml', 'l'];
-        
-        if (
-          (massUnits.includes(inventoryItem.unit) && !massUnits.includes(ingredient.unit)) ||
-          (volUnits.includes(inventoryItem.unit) && !volUnits.includes(ingredient.unit)) ||
-          (inventoryItem.unit === 'unit' && ingredient.unit !== 'unit')
-        ) {
           dishStatus = 'cannotMake';
-          reason = `Unit mismatch for ${ingredient.name} (Recipe needs ${ingredient.unit}, stock is ${inventoryItem.unit})`;
+          reason = `${ingredient.name} out of stock`;
           break;
         }
-
-        // Convert stock to recipe units for comparison
+        
+        // Unit Conversion logic for recipe vs stock
         let stockInRecipeUnits = stockData.quantity;
-        if (inventoryItem.unit === 'kg' && ingredient.unit === 'g') {
-          stockInRecipeUnits *= 1000;
-        } else if (inventoryItem.unit === 'l' && ingredient.unit === 'ml') {
-          stockInRecipeUnits *= 1000;
-        }
-        // Add other conversions if needed (g to kg, ml to l)
+        if (inventoryItem.unit === 'kg' && ingredient.unit === 'g') stockInRecipeUnits *= 1000;
+        else if (inventoryItem.unit === 'l' && ingredient.unit === 'ml') stockInRecipeUnits *= 1000;
 
         const possibleDishes = Math.floor(stockInRecipeUnits / ingredient.quantityRequired);
 
@@ -245,19 +222,18 @@ const runMenuAnalysisJob = async () => {
       }
 
       if (dishStatus === 'lowStock') {
-        analysis.lowStock.push(`${dish.name} (only ${minPossibleDishes} left due to ${lowestStockIngredient})`);
+        analysis.lowStock.push(`${dish.name} (only ${minPossibleDishes} left)`);
       } else if (dishStatus === 'cannotMake') {
-        analysis.cannotMake.push(`${dish.name} (Reason: ${reason})`);
+        analysis.cannotMake.push(`${dish.name} (${reason})`);
       }
     }
     
-    // Inventory-first analysis
+    // Inventory Analysis
     const expiringSoonItems = [];
     const highStockItems = [];
     const today = new Date();
 
     for (const item of allInventory) {
-      // 1. Check for expiry
       if (item.expiresInDays && item.dateReceived) {
         const expiryDate = new Date(item.dateReceived);
         expiryDate.setDate(expiryDate.getDate() + item.expiresInDays);
@@ -267,13 +243,12 @@ const runMenuAnalysisJob = async () => {
           expiringSoonItems.push({ name: item.name, id: item._id.toString(), daysRemaining: Math.ceil(daysRemaining) });
         }
       }
-      // 2. Check for high stock
       if (item.quantity > HIGH_STOCK_THRESHOLD) {
         highStockItems.push({ name: item.name, id: item._id.toString(), quantity: item.quantity, unit: item.unit });
       }
     }
 
-    // Find dishes to push
+    // Profit Opportunity Analysis
     const expiringDishSuggestions = [];
     const highStockDishSuggestions = [];
     const expiringItemIds = new Set(expiringSoonItems.map(i => i.id));
@@ -293,10 +268,8 @@ const runMenuAnalysisJob = async () => {
         }
       }
       
-      // If this dish uses a problem item, calculate its profit
       if (usesExpiringItem || usesHighStockItem) {
         const { profitMargin, missingCostData } = getMenuFoodCost(dish);
-        
         if (missingCostData) continue;
         
         const suggestion = { name: dish.name, profitMargin: profitMargin.toFixed(0) };
@@ -305,17 +278,16 @@ const runMenuAnalysisJob = async () => {
       }
     }
 
-    // Sort suggestions by most profitable first
+    // Sort by profit
     expiringDishSuggestions.sort((a, b) => b.profitMargin - a.profitMargin);
     highStockDishSuggestions.sort((a, b) => b.profitMargin - a.profitMargin);
 
-    // Check if there's anything to report
     if (analysis.lowStock.length === 0 && analysis.cannotMake.length === 0 && expiringSoonItems.length === 0 && highStockItems.length === 0) {
-      console.log('Menu analysis complete. All stock levels are healthy.');
+      console.log('Menu analysis complete. No alerts needed.');
       return;
     }
     
-    // Check if alert was already sent
+    // Check if alert was already sent today
     const alertTitle = "Daily Operations & Profit Brief";
     const existing = await Notification.findOne({
       title: alertTitle,
@@ -327,28 +299,20 @@ const runMenuAnalysisJob = async () => {
       return;
     }
 
-    const systemPrompt = `You are an expert restaurant manager AI. Your goal is to write a concise daily brief for the restaurant owner. I will provide you with data.
-Your brief must be actionable.
-1. Start with the MOST URGENT "CANNOT MAKE" items.
-2. List the "LOW ON STOCK" dishes.
-3. For "EXPIRING SOON" items, strongly recommend pushing the suggested high-profit dishes to avoid waste.
-4. For "SURPLUS" items, suggest promoting the related high-profit dishes.
-Keep the entire brief under 100 words. Be professional and clear.
-IMPORTANT: Do not use any markdown (like ** or *). Start with a capitalized title.`;
+    // Generate Prompt
+    const systemPrompt = `You are an expert restaurant manager AI. Write a concise daily brief (under 100 words).
+1. Prioritize URGENT "CANNOT MAKE" items.
+2. List "LOW STOCK" items.
+3. Suggest high-profit specials for "EXPIRING" or "SURPLUS" inventory.
+No markdown. Professional tone.`;
     
-    // Prepare text snippets for the query
-    const expiringItemsText = expiringSoonItems.map(i => `${i.name} (expires in ${i.daysRemaining} days)`).join(', ') || 'None';
-    const expiringDishesText = expiringDishSuggestions.map(d => `${d.name} (${d.profitMargin}% margin)`).slice(0, 2).join(', ') || 'None';
-    const highStockItemsText = highStockItems.map(i => `${i.name} (${i.quantity} ${i.unit})`).join(', ') || 'None';
-    const highStockDishesText = highStockDishSuggestions.map(d => `${d.name} (${d.profitMargin}% margin)`).slice(0, 2).join(', ') || 'None';
-
-    const userQuery = `Here is my daily report:
-- DISHES WE CANNOT MAKE: ${analysis.cannotMake.join(', ') || 'None'}
-- DISHES LOW ON STOCK: ${analysis.lowStock.join(', ') || 'None'}
-- INVENTORY EXPIRING SOON: ${expiringItemsText}
-- SUGGESTIONS FOR EXPIRING ITEMS: ${expiringDishesText}
-- INVENTORY IN SURPLUS: ${highStockItemsText}
-- SUGGESTIONS FOR SURPLUS ITEMS: ${highStockDishesText}`;
+    const userQuery = `Report Data:
+- CANNOT MAKE: ${analysis.cannotMake.join(', ') || 'None'}
+- LOW STOCK: ${analysis.lowStock.join(', ') || 'None'}
+- EXPIRING: ${expiringSoonItems.map(i => `${i.name} (${i.daysRemaining}d)`).join(', ') || 'None'}
+- PROFITABLE EXPIRING DISHES: ${expiringDishSuggestions.map(d => `${d.name} (${d.profitMargin}%)`).slice(0, 2).join(', ') || 'None'}
+- SURPLUS: ${highStockItems.map(i => `${i.name} (${i.quantity})`).join(', ') || 'None'}
+- PROFITABLE SURPLUS DISHES: ${highStockDishSuggestions.map(d => `${d.name} (${d.profitMargin}%)`).slice(0, 2).join(', ') || 'None'}`;
     
     const suggestion = await callGeminiAPI(systemPrompt, userQuery);
 
@@ -359,8 +323,11 @@ IMPORTANT: Do not use any markdown (like ** or *). Start with a capitalized titl
   }
 };
 
+// Start the Job
 runMenuAnalysisJob();
 setInterval(runMenuAnalysisJob, CHECK_INTERVAL_MS);
+
+// --- Middleware & Routes ---
 
 const isManagerOrAdmin = (req, res, next) => {
   if (req.user && (req.user.role === 'admin' || req.user.role === 'manager')) {
@@ -369,8 +336,11 @@ const isManagerOrAdmin = (req, res, next) => {
     res.status(403).json({ success: false, msg: 'Access Denied.' });
   }
 };
+
 router.use(auth, isManagerOrAdmin);
 
+// @route   GET /api/predict/low-stock
+// @desc    Get items below low stock threshold
 router.get('/low-stock', async (req, res) => {
   try {
     const lowStockItems = await Inventory.find({
@@ -383,12 +353,19 @@ router.get('/low-stock', async (req, res) => {
   }
 });
 
+// @route   GET /api/predict/notifications/unread
+// @desc    Get unread system notifications
 router.get('/notifications/unread', async (req, res) => {
   try {
     const notifications = await Notification.find({ status: 'unread' }).sort({ createdAt: 'desc' });
     res.status(200).json({ success: true, data: notifications });
-  } catch (err) { res.status(500).json({ success: false, msg: 'Server error' }); }
+  } catch (err) { 
+    res.status(500).json({ success: false, msg: 'Server error' }); 
+  }
 });
+
+// @route   POST /api/predict/notifications/mark-read
+// @desc    Mark specific notifications as read
 router.post('/notifications/mark-read', async (req, res) => {
   const { ids } = req.body;
   if (!ids || !Array.isArray(ids)) {
@@ -397,20 +374,32 @@ router.post('/notifications/mark-read', async (req, res) => {
   try {
     await Notification.updateMany({ _id: { $in: ids } }, { $set: { status: 'read' } });
     res.status(200).json({ success: true, msg: 'Marked as read' });
-  } catch (err) { res.status(500).json({ success: false, msg: 'Server error' }); }
+  } catch (err) { 
+    res.status(500).json({ success: false, msg: 'Server error' }); 
+  }
 });
+
+// @route   GET /api/predict/notifications
+// @desc    Get all notifications
 router.get('/notifications', async (req, res) => {
   try {
     const notifications = await Notification.find({}).sort({ createdAt: 'desc' });
     res.status(200).json({ success: true, data: notifications });
-  } catch (err) { res.status(500).json({ success: false, msg: 'Server error' }); }
+  } catch (err) { 
+    res.status(500).json({ success: false, msg: 'Server error' }); 
+  }
 });
+
+// @route   DELETE /api/predict/notifications/:id
+// @desc    Delete a notification
 router.delete('/notifications/:id', async (req, res) => {
   try {
     const notification = await Notification.findByIdAndDelete(req.params.id);
     if (!notification) return res.status(404).json({ success: false, msg: 'Notification not found' });
     res.status(200).json({ success: true, msg: 'Notification deleted' });
-  } catch (err) { res.status(400).json({ success: false, msg: 'Invalid ID' }); }
+  } catch (err) { 
+    res.status(400).json({ success: false, msg: 'Invalid ID' }); 
+  }
 });
 
 module.exports = router;

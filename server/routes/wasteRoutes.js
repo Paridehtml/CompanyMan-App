@@ -37,11 +37,9 @@ router.post('/', async (req, res) => {
       throw new Error(`Not enough stock to log waste. On hand: ${item.quantity}, Wasting: ${quantity}`);
     }
 
-    // 1. Deduct from Inventory
     item.quantity -= quantity;
     await item.save({ session });
 
-    // 2. Create Waste Log
     const wasteLog = new Waste({
       inventoryItem: item._id,
       itemName: item.name,

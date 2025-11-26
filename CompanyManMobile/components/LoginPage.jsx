@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 import { View, StyleSheet, Alert, Text, Image } from 'react-native'; 
 import { useRouter } from 'expo-router';
 import { AuthContext } from './authContext';
-import api from '../services/api'; // Imports the central API configuration
+import api from '../services/api';
 import { TextInput, Button, Title } from 'react-native-paper'; 
 
 const LoginPage = () => {
@@ -18,8 +18,6 @@ const LoginPage = () => {
     setError('');
     setLoading(true);
     try {
-      // We now use 'api.post' and the relative path.
-      // The Base URL (IP address) is handled automatically by api.js
       const res = await api.post('/api/auth/login', { email, password });
       
       // Save the token and user data

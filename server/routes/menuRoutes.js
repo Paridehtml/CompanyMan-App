@@ -12,6 +12,9 @@ const isManagerOrAdmin = (req, res, next) => {
   }
 };
 
+// @route   GET /api/menu
+// @desc    Get all menu items and basic inventory data
+// @access  Private
 router.get('/', auth, async (req, res) => {
   try {
     const dishes = await Menu.find().sort({ category: 1, name: 1 });
@@ -23,6 +26,9 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// @route   POST /api/menu
+// @desc    Create a new menu item
+// @access  Private (Manager/Admin)
 router.post('/', auth, isManagerOrAdmin, async (req, res) => {
   try {
     const newDish = new Menu(req.body);
@@ -34,6 +40,9 @@ router.post('/', auth, isManagerOrAdmin, async (req, res) => {
   }
 });
 
+// @route   PUT /api/menu/:id
+// @desc    Update a menu item
+// @access  Private (Manager/Admin)
 router.put('/:id', auth, isManagerOrAdmin, async (req, res) => {
   try {
     const updatedDish = await Menu.findByIdAndUpdate(
@@ -42,7 +51,7 @@ router.put('/:id', auth, isManagerOrAdmin, async (req, res) => {
       { new: true, runValidators: true }
     );
     if (!updatedDish) {
-      return res.status(440).json({ success: false, msg: 'Dish not found' });
+      return res.status(404).json({ success: false, msg: 'Dish not found' });
     }
     res.json({ success: true, data: updatedDish });
   } catch (err) {
@@ -51,6 +60,9 @@ router.put('/:id', auth, isManagerOrAdmin, async (req, res) => {
   }
 });
 
+// @route   DELETE /api/menu/:id
+// @desc    Delete a menu item
+// @access  Private (Manager/Admin)
 router.delete('/:id', auth, isManagerOrAdmin, async (req, res) => {
   try {
     const deletedDish = await Menu.findByIdAndDelete(req.params.id);
@@ -64,12 +76,9 @@ router.delete('/:id', auth, isManagerOrAdmin, async (req, res) => {
   }
 });
 
-
-// ------------------------------------------------------------------
 // @route   GET /api/menu/:id/cost
 // @desc    Get the calculated food cost for a menu item
-// @access  Private (Admin/Manager)
-// ------------------------------------------------------------------
+// @access  Private (Manager/Admin)
 router.get('/:id/cost', auth, isManagerOrAdmin, async (req, res) => {
   try {
     const menu = await Menu.findById(req.params.id);
@@ -81,93 +90,58 @@ router.get('/:id/cost', auth, isManagerOrAdmin, async (req, res) => {
     let costBreakdown = [];
     let missingCostData = false;
 
+    // Helper for unit conversion
+    const getBaseUnit = (unit) => {
+      if (unit === 'kg' || unit === 'l') return 1000;
+      return 1; // g, ml, unit
+    };
+
+    const massUnits = ['g', 'kg'];
+    const volUnits = ['ml', 'l'];
+
     for (const item of menu.recipe) {
       const inventoryItem = await Inventory.findById(item.inventoryItem);
       
       if (!inventoryItem) {
-        throw new Error(`Ingredient ${item.name} not found in inventory.`);
-      }
-
-      const {
-        purchasePrice, // e.g., 1.10
-        purchaseUnit,  // e.g., 'l'
-        purchaseQuantity, // e.g., 1
-        unit: stockingUnit // e.g., 'ml'
-      } = inventoryItem;
-
-      if (purchasePrice === null || purchasePrice < 0 || !purchaseQuantity) {
+        // Skip if ingredient deleted, but flag it
         missingCostData = true;
-        costBreakdown.push({ name: item.name, cost: 0, msg: `Missing price for ${inventoryItem.name}` });
         continue;
       }
 
-      // --- THIS IS THE NEW, CORRECTED LOGIC ---
+      const { purchasePrice, purchaseUnit, purchaseQuantity, unit: stockingUnit } = inventoryItem;
 
-      // 1. Calculate the price per single 'purchaseUnit'
-      // e.g., $4.50 / 5 = $0.90 per 'kg' for a 5kg bag
-      const pricePerPurchaseUnit = purchasePrice / purchaseQuantity;
+      if (!purchasePrice || purchasePrice < 0 || !purchaseQuantity) {
+        missingCostData = true;
+        costBreakdown.push({ name: item.name, cost: 0, msg: 'Missing cost data' });
+        continue;
+      }
 
-      // 2. Define conversion factors to base units (g or ml)
-      const getBaseUnit = (unit) => {
-        if (unit === 'kg') return 1000;
-        if (unit === 'g') return 1;
-        if (unit === 'l') return 1000;
-        if (unit === 'ml') return 1;
-        if (unit === 'unit') return 1;
-        return 1;
-      };
-
-      const massUnits = ['g', 'kg'];
-      const volUnits = ['ml', 'l'];
-
-      // 3. Check for incompatible units
+      // Check unit compatibility
       if (
         (massUnits.includes(purchaseUnit) && volUnits.includes(stockingUnit)) ||
         (volUnits.includes(purchaseUnit) && massUnits.includes(stockingUnit))
       ) {
-        // e.g., You buy in 'kg' (mass) but stock in 'ml' (volume). This is not allowed.
-        throw new Error(`Incompatible units for ${inventoryItem.name}: Cannot convert purchase unit (${purchaseUnit}) to stocking unit (${stockingUnit}).`);
+        throw new Error(`Incompatible units for ${inventoryItem.name}`);
       }
 
-      // 4. Calculate the cost per single 'stockingUnit'
-      // e.g., ( $1.10 / 1 (liter) ) / ( 1000 (ml) / 1 (liter) ) = $0.0011 per ml
-      const purchaseUnitsInBase = getBaseUnit(purchaseUnit); // e.g., 1 'l' = 1000
-      const stockingUnitsInBase = getBaseUnit(stockingUnit); // e.g., 1 'ml' = 1
-      
-      const conversionRatio = purchaseUnitsInBase / stockingUnitsInBase; // e.g., 1000 / 1 = 1000
-      
-      // pricePerStockUnit is the final, accurate cost per 'g' or 'ml'
-      let pricePerStockUnit;
-      
-      if (purchaseUnit === 'unit' && stockingUnit === 'unit') {
-         // Special case: 12 eggs for $3.00 (price 3.00, qty 12, unit 'unit')
-         // pricePerPurchaseUnit = 3.00 / 12 = 0.25
-         // A recipe needs 1 'unit' (egg). Cost is 0.25 * 1 = 0.25
-         pricePerStockUnit = pricePerPurchaseUnit;
-      } else {
-         // e.g., $0.90 (per kg) / 1000 (g in a kg) = $0.0009 per g
-         pricePerStockUnit = pricePerPurchaseUnit / conversionRatio;
-      }
+      // Calculate base cost per smallest unit (g/ml/unit)
+      const pricePerPurchaseUnit = purchasePrice / purchaseQuantity;
+      const purchaseToBase = getBaseUnit(purchaseUnit);
+      const stockingToBase = getBaseUnit(stockingUnit);
+      const conversionRatio = purchaseToBase / stockingToBase;
 
-      // 5. Check compatibility between recipe and inventory stocking units
+      let pricePerStockUnit = (purchaseUnit === 'unit' && stockingUnit === 'unit') 
+        ? pricePerPurchaseUnit 
+        : pricePerPurchaseUnit / conversionRatio;
+
+      // Calculate final cost based on recipe requirement
       const recipeUnit = item.unit;
       const requiredQty = item.quantityRequired;
-      
-      if (
-        (massUnits.includes(stockingUnit) && !massUnits.includes(recipeUnit)) ||
-        (volUnits.includes(stockingUnit) && !volUnits.includes(recipeUnit)) ||
-        (stockingUnit === 'unit' && recipeUnit !== 'unit')
-      ) {
-         throw new Error(`Incompatible recipe unit for ${item.name}: Stock is in ${stockingUnit}, but recipe asks for ${recipeUnit}.`);
-      }
-
-      // 6. Calculate cost for the recipe
-      const recipeUnitInBase = getBaseUnit(recipeUnit);
-      const stockingUnitInBaseFinal = getBaseUnit(stockingUnit);
-
-      const finalConversion = recipeUnitInBase / stockingUnitInBaseFinal;
+      const recipeToBase = getBaseUnit(recipeUnit);
+      const finalConversion = recipeToBase / stockingToBase;
       
       const ingredientCost = pricePerStockUnit * (requiredQty * finalConversion);
+      
       totalCost += ingredientCost;
       costBreakdown.push({ name: item.name, cost: ingredientCost });
     }
@@ -184,7 +158,7 @@ router.get('/:id/cost', auth, isManagerOrAdmin, async (req, res) => {
         foodCost: parseFloat(totalCost.toFixed(2)),
         profit: parseFloat(profit.toFixed(2)),
         profitMargin: parseFloat(profitMargin.toFixed(2)),
-        missingCostData: missingCostData,
+        missingCostData,
         breakdown: costBreakdown,
       }
     });
@@ -194,6 +168,5 @@ router.get('/:id/cost', auth, isManagerOrAdmin, async (req, res) => {
     res.status(500).json({ success: false, msg: err.message });
   }
 });
-
 
 module.exports = router;

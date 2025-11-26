@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
-// Import Routes
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/auth');
 const shiftRoutes = require('./routes/shiftRoutes');
@@ -17,11 +16,9 @@ const notificationRoutes = require('./routes/notificationRoutes');
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Register Routes
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/shifts', shiftRoutes);
@@ -33,7 +30,6 @@ app.use('/api/waste', wasteRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/notifications', notificationRoutes);
 
-// Health check
 app.get('/', (req, res) => {
   res.json({ message: 'CompanyMan API is Running' });
 });

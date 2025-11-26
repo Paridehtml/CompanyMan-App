@@ -35,7 +35,7 @@ The project is divided into two main folders: `server` (Backend) and `CompanyMan
     ```
 3.  **Environment Configuration:**
     * Rename the provided `.env.example` file to `.env`.
-    * Open `.env` and fill in the required keys (See **`NOTES.txt`** for the credentials).
+    * Open `.env` and fill in the required keys (See **`NOTES.md`** for the credentials).
 4.  Start the server:
     ```bash
     npm start
@@ -90,7 +90,7 @@ If you see a token error, the app is protecting you from stale sessions. Simply 
 ---
 
 ## 6. Test Credentials
-Please refer to the **`NOTES.txt`** file included in the root directory for:
+Please refer to the **`NOTES.md`** file included in the root directory for:
 * MongoDB Connection URI
 * JWT Secret
 * Google Gemini API Key

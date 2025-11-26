@@ -217,8 +217,9 @@ const SalesPage = () => {
             <Card style={styles.card}>
               <Card.Content>
                 <Title style={styles.cardTitle}>Revenue</Title>
+                {/* CHANGED: $ to £ */}
                 <Paragraph style={styles.cardContent}>
-                  ${summary?.periodRevenue?.toFixed(2) || '0.00'}
+                  £{summary?.periodRevenue?.toFixed(2) || '0.00'}
                 </Paragraph>
                 
                 {summary && summary.periodMargin !== undefined && (
@@ -254,11 +255,11 @@ const SalesPage = () => {
             
             {bestSellerDetails ? (
               <Paragraph style={[styles.profitMargin, { color: theme.colors.primary }]}>
+                {/* CHANGED: $ to £ */}
                 Profit Margin: {bestSellerDetails.profitMargin.toFixed(0)}% 
-                (Cost: ${bestSellerDetails.foodCost.toFixed(2)})
+                (Cost: £{bestSellerDetails.foodCost.toFixed(2)})
               </Paragraph>
             ) : (
-              /* I added !! here to force a boolean check, fixing the text node error */
               summary && !!summary.bestSellingDishId && (
                 <ActivityIndicator size="small" style={{alignSelf: 'flex-start'}} />
               )
@@ -291,7 +292,8 @@ const SalesPage = () => {
     return (
       <List.Accordion
         style={styles.listItem}
-        title={`Order #${item.orderNumber} - $${(item.totalAmount || 0).toFixed(2)}`}
+        // CHANGED: $ to £
+        title={`Order #${item.orderNumber} - £${(item.totalAmount || 0).toFixed(2)}`}
         description={`Sold by: ${item.soldBy?.name || 'Unknown'} at ${new Date(item.createdAt).toLocaleTimeString()}`}
         left={() => <List.Icon icon="receipt" color={theme.colors.primary} />}
         onPress={() => handleAccordionPress(item._id)}
@@ -301,7 +303,8 @@ const SalesPage = () => {
           <List.Item
             key={index}
             title={`${dish.dishName} (x${dish.quantity})`}
-            description={`$${(dish.price * dish.quantity).toFixed(2)}`}
+            // CHANGED: $ to £
+            description={`£${(dish.price * dish.quantity).toFixed(2)}`}
             style={styles.subItem}
             left={() => <List.Icon icon="circle-small" />}
           />
@@ -315,13 +318,14 @@ const SalesPage = () => {
             {expandedOrderCost && expandedOrderCost.orderId === item._id && (
               <>
                 <List.Item
-                  title={`Total Food Cost: $${expandedOrderCost.totalFoodCost.toFixed(2)}`}
+                  // CHANGED: $ to £
+                  title={`Total Food Cost: £${expandedOrderCost.totalFoodCost.toFixed(2)}`}
                   style={styles.subItem}
                   titleStyle={styles.costText}
                   left={() => <List.Icon icon="cash" />}
                 />
                 <List.Item
-                  title={`Total Profit: $${expandedOrderCost.totalProfit.toFixed(2)}`}
+                  title={`Total Profit: £${expandedOrderCost.totalProfit.toFixed(2)}`}
                   style={styles.subItem}
                   titleStyle={[styles.costText, { color: theme.colors.primary }]}
                   left={() => <List.Icon icon="chart-line" color={theme.colors.primary} />}
