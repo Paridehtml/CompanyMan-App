@@ -2,6 +2,11 @@
 node_modules/
 client/node_modules/
 server/node_modules/
+.expo/
+.env
+.DS_Store
+NOTES.md
+dist/
 
 # Environment variables
 .env
