@@ -321,20 +321,21 @@ const HomePage = () => {
   const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'manager';
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.headerContainer}>
         <Title style={styles.header}>Welcome, {user?.name || 'User'}</Title>
       </View>
 
       {isManagerOrAdmin ? <ManagerDashboard /> : <EmployeeDashboard />}
       
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    margin: 0,
     backgroundColor: '#f5f5ff', 
   },
   scrollContainer: {
@@ -343,7 +344,8 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 30,
+    paddingBottom: 7,
   },
   header: {
     fontSize: 26,

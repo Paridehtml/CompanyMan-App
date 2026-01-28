@@ -127,7 +127,7 @@ const NotificationPage = () => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <FlatList
           data={notifications}
           renderItem={({ item }) => (
@@ -149,7 +149,7 @@ const NotificationPage = () => {
           }
           contentContainerStyle={{ padding: 10 }}
         />
-      </SafeAreaView>
+      </View>
     </GestureHandlerRootView>
   );
 };
@@ -157,6 +157,7 @@ const NotificationPage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: 10,
     backgroundColor: '#fff',
   },
   centered: {
