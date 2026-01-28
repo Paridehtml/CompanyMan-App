@@ -81,7 +81,7 @@ export const OrderProvider = ({ children }: { children: React.ReactNode }) => {
       
       const res = await api.post('/api/sales', { dishIds });
       
-      Alert.alert("Success!", `Sale recorded for $${res.data.total.toFixed(2)}`);
+      Alert.alert("Success!", `Sale recorded for £${res.data.total.toFixed(2)}`);
       clearOrder(); 
       return true;
       

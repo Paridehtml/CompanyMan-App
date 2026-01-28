@@ -183,7 +183,7 @@ const WasteLogPage = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <LogWasteModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
@@ -223,12 +223,12 @@ const WasteLogPage = () => {
         }
         contentContainerStyle={{ padding: 10 }}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, paddingTop: 15, backgroundColor: '#f5f5f5' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   errorText: { color: 'red', textAlign: 'center', marginBottom: 10 },
   addButton: { margin: 10 },

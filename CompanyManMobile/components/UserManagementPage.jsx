@@ -253,7 +253,7 @@ const UserManagementPage = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <UserFormModal 
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
@@ -293,13 +293,14 @@ const UserManagementPage = () => {
         }
         contentContainerStyle={{ padding: 10 }}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: 15,
     backgroundColor: '#f5f5f5',
   },
   centered: {

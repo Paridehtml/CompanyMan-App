@@ -289,7 +289,7 @@ const StaffScheduler = () => {
   if (!auth || auth.loading) return <View style={styles.centered}><ActivityIndicator size="large" /></View>;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <ShiftFormModal 
         visible={modalVisible}
         onClose={() => { setModalVisible(false); setShiftToEdit(null); }}
@@ -339,12 +339,12 @@ const StaffScheduler = () => {
         }}
         initialNumToRender={15}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, paddingTop: 10, backgroundColor: '#f5f5f5' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#f5f5f5' },
   errorText: { color: 'red', textAlign: 'center', padding: 10 },
   listLoadingIndicator: { padding: 10 },

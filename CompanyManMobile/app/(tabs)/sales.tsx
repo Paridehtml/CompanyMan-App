@@ -356,7 +356,7 @@ const SalesPage = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {error && (
         <View style={styles.centered}>
           <Text style={{ color: 'red' }}>{error}</Text>
@@ -390,13 +390,14 @@ const SalesPage = () => {
         }
         contentContainerStyle={styles.listContent}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: 15,
     backgroundColor: '#f5f5f5',
   },
   centered: {

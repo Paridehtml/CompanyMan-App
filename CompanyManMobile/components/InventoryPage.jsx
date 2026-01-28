@@ -584,7 +584,7 @@ const InventoryPage = () => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <ItemFormModal visible={modalVisible} onClose={() => setModalVisible(false)} onSave={handleSave} item={itemToEdit} suppliers={suppliers} />
         
         <BarcodeScannerModal
@@ -639,14 +639,14 @@ const InventoryPage = () => {
           }
           contentContainerStyle={{ padding: 10 }}
         />
-      </SafeAreaView>
+      </View>
     </GestureHandlerRootView>
   );
 };
 
 const LOW_STOCK_THRESHOLD = 10;
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, paddingTop: 10, backgroundColor: '#f5f5f5' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#f5f5f5' },
   emptyCard: { margin: 10 },
   errorBox: { padding: 10, alignItems: 'center' },

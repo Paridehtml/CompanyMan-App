@@ -22,7 +22,6 @@ import {
   Menu,
   Snackbar,
 } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../services/api'; 
 import { AuthContext } from './authContext';
 import { OrderContext } from './OrderContext'; 
@@ -413,7 +412,7 @@ const MenuPage = () => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         {!isEmployee && (
           <DishFormModal 
             visible={modalVisible}
@@ -466,13 +465,13 @@ const MenuPage = () => {
         >
           {snackbarMessage}
         </Snackbar>
-      </SafeAreaView>
+      </View>
     </GestureHandlerRootView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, paddingTop: 10, backgroundColor: '#f5f5f5' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   errorText: { color: 'red', textAlign: 'center', marginBottom: 10 },
   addButton: { margin: 10, marginTop: 10, marginHorizontal: 8 },
